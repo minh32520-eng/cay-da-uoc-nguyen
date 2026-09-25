@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`BRANCH_SLOTS (001) > bố cục ổn định giữa các lần chạy (seed cố định) 1`] = `
+[
+  1.692,
+  3.213,
+  0.12,
+]
+`;

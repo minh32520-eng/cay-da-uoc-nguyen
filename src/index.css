@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+
+/* Chỉ dùng font hệ thống: không tải tài nguyên bên thứ ba (Constitution §II, §VII) */
+@theme {
+  --color-night-950: #050817;
+  --color-night-900: #0b1030;
+  --color-night-800: #151b45;
+  --font-display: 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --font-hand: 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+  --font-sans: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --animate-rise: rise 220ms ease-out both;
+  --animate-slide-in: slide-in 240ms ease-out both;
+  --animate-progress: progress 1.2s ease-in-out infinite;
+  --animate-float: float 3.5s ease-in-out infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-in {
+    from { transform: translateX(100%); }
+    to { transform: none; }
+  }
+  @keyframes progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+    50% { transform: translateY(-8px) rotate(1.5deg); }
+  }
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-night-950);
+  font-family: var(--font-sans);
+  color-scheme: dark;
+}
+
+@layer components {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold transition
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200
+      disabled:cursor-not-allowed disabled:opacity-45;
+  }
+  .btn-primary {
+    @apply bg-gradient-to-b from-amber-400 to-orange-500 text-night-950 shadow-lg shadow-orange-900/40 hover:from-amber-300 hover:to-orange-400;
+  }
+  .btn-secondary {
+    @apply border border-amber-200/30 bg-night-900/85 text-amber-50 hover:border-amber-200/60 hover:bg-night-800;
+  }
+  .btn-danger {
+    @apply bg-red-700 text-white hover:bg-red-600;
+  }
+  .btn-ghost {
+    @apply rounded px-1 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-amber-200;
+  }
+  .btn-icon {
+    @apply inline-flex h-10 min-w-10 items-center justify-center rounded-full border border-amber-200/25 bg-night-900/80 text-amber-100
+      transition hover:bg-night-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200;
+  }
+  .field {
+    @apply w-full rounded-xl border border-amber-100/20 bg-night-950/70 px-3 py-2.5 text-amber-50 placeholder:text-amber-100/40
+      focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/40 aria-invalid:border-red-400;
+  }
+  .label {
+    @apply text-sm font-medium text-amber-100/90;
+  }
+  .chip {
+    @apply inline-flex cursor-pointer items-center gap-1 rounded-full border border-amber-100/20 bg-night-800/60 px-3 py-1.5 text-sm transition
+      hover:border-amber-200/50 focus-within:ring-2 focus-within:ring-amber-300 focus-visible:outline-2 focus-visible:outline-amber-300;
+  }
+  .chip:has(input:checked),
+  .chip[aria-pressed='true'] {
+    @apply border-amber-300 bg-amber-400/20 text-amber-100;
+  }
+  .swatch {
+    @apply cursor-pointer;
+  }
+}
+
+/* Tờ giấy 2D đung đưa */
+.paper-sway {
+  animation: paper-sway 3.2s ease-in-out infinite;
+}
+@keyframes paper-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
