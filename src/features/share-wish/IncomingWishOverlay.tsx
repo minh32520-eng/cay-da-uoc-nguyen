@@ -21,7 +21,7 @@ export function IncomingWishOverlay() {
             <button type="button" className="btn-secondary flex-1" onClick={dismiss}>
               {vi.share.dismiss}
             </button>
-            <button type="button" className="btn-primary flex-1" onClick={() => accept()}>
+            <button type="button" className="btn-primary flex-1" onClick={() => void accept()}>
               <OrnamentIcon /> {vi.share.accept}
             </button>
           </div>

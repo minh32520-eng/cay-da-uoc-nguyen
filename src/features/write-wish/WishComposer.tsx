@@ -23,10 +23,14 @@ export interface SubmitOptions {
 interface WishComposerProps {
   open: boolean;
   onClose: () => void;
-  /** Trả true nếu gửi thành công để form xoá bản nháp và đóng. */
-  onSubmit: (draft: WishDraft, opts: SubmitOptions) => boolean;
+  /** Trả true (hoặc Promise<true>) nếu gửi thành công để form xoá bản nháp và đóng. */
+  onSubmit: (draft: WishDraft, opts: SubmitOptions) => boolean | Promise<boolean>;
   initialValue?: Partial<WishDraft>;
   mode?: 'create' | 'edit';
+  /** Chế độ cây chung (007): lượt còn lại của IP; null = không giới hạn (local). */
+  quota?: { remaining: number; limit: number } | null;
+  /** Cho phép "Tự chọn cành" (FR-003-04) — tắt ở chế độ cây chung. */
+  allowPickSlot?: boolean;
 }
 
 const CONTENT_ERR: Record<DraftIssue, string> = {
@@ -41,11 +45,13 @@ const AUTHOR_ERR: Record<DraftIssue, string> = {
 };
 
 /** Modal soạn / sửa ước nguyện (feature 002, dùng lại ở 005). */
-export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'create' }: WishComposerProps) {
+export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'create', quota = null, allowPickSlot = true }: WishComposerProps) {
   const form = useWishForm(initialValue);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const [pickSlot, setPickSlot] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const outOfQuota = mode === 'create' && quota !== null && quota.remaining <= 0;
   const ids = { content: useId(), contentErr: useId(), author: useId(), authorErr: useId(), counter: useId() };
   const { reset } = form;
 
@@ -71,14 +77,21 @@ export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'cr
     else onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || outOfQuota) return;
     const draft = form.submit();
     if (!draft) return;
-    if (onSubmit(draft, { pickSlot: mode === 'create' && pickSlot })) {
-      if (mode === 'create') draftStorage.clear();
-      form.reset();
-      setPickSlot(false);
+    setSubmitting(true);
+    try {
+      // Server lỗi / hết lượt → giữ nguyên bản nháp (FR-007-08, ERR-007-02)
+      if (await onSubmit(draft, { pickSlot: mode === 'create' && allowPickSlot && pickSlot })) {
+        if (mode === 'create') draftStorage.clear();
+        form.reset();
+        setPickSlot(false);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -123,7 +136,7 @@ export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'cr
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} noValidate className="grid gap-6 sm:grid-cols-[1fr_auto]">
+        <form onSubmit={(e) => void handleSubmit(e)} noValidate className="grid gap-6 sm:grid-cols-[1fr_auto]">
           <div className="space-y-4">
             <div>
               <div className="mb-1 flex items-end justify-between">
@@ -217,7 +230,7 @@ export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'cr
               </div>
             </fieldset>
 
-            {mode === 'create' && (
+            {mode === 'create' && allowPickSlot && (
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={pickSlot} onChange={(e) => setPickSlot(e.target.checked)} className="h-4 w-4 accent-amber-400" />
                 {vi.compose.pickSlot}
@@ -227,9 +240,19 @@ export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'cr
 
           <div className="flex flex-col items-center justify-between gap-6 pt-6">
             <WishPaperPreview draft={form.values} />
-            <button type="submit" className="btn-primary w-full" disabled={!form.isValid}>
-              <OrnamentIcon /> {mode === 'create' ? vi.compose.submitCreate : vi.compose.submitEdit}
-            </button>
+            <div className="w-full space-y-2">
+              {mode === 'create' && quota && (
+                <div className="space-y-1 text-center text-xs" aria-live="polite">
+                  <p className={outOfQuota ? 'font-semibold text-red-300' : 'text-amber-200'}>
+                    {outOfQuota ? vi.remote.quotaExceeded : vi.remote.quota(quota.remaining, quota.limit)}
+                  </p>
+                  <p className="text-amber-100/70">{vi.remote.publicNotice}</p>
+                </div>
+              )}
+              <button type="submit" className="btn-primary w-full" disabled={!form.isValid || submitting || outOfQuota}>
+                <OrnamentIcon /> {submitting ? vi.remote.sending : mode === 'create' ? vi.compose.submitCreate : vi.compose.submitEdit}
+              </button>
+            </div>
           </div>
         </form>
       )}

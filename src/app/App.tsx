@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   freeSlotsOf,
   MAX_WISHES,
+  remoteWishes,
   selectIsFull,
   useWishStore,
   type Wish,
   type WishDraft,
 } from '@/entities/wish';
-import { hangFromDraft } from '@/features/hang-wish';
+import { hangFromDraft, hangWishAnyMode, remoteErrorText } from '@/features/hang-wish';
 import { useWishPersistence } from '@/features/hang-wish';
 import { BackupPanel, WishActions } from '@/features/manage-wish';
 import { IncomingWishOverlay, ShareButton, useIncomingSharedWish } from '@/features/share-wish';
@@ -35,7 +36,12 @@ export function App() {
   useIncomingSharedWish();
 
   const wishes = useWishStore((s) => s.wishes);
-  const isFull = useWishStore(selectIsFull);
+  const older = useWishStore((s) => s.older);
+  const quota = useWishStore((s) => s.quota);
+  const remote = remoteWishes.enabled;
+  // Cây chung luôn hiển thị 100 điều ước mới nhất nên không bao giờ "đầy" (007 ghi đè FR-003-12)
+  const localFull = useWishStore(selectIsFull);
+  const isFull = !remote && localFull;
   const selectedId = useWishViewStore((s) => s.selectedWishId);
   const select = useWishViewStore((s) => s.select);
   const openDrawer = useWishViewStore((s) => s.openDrawer);
@@ -47,13 +53,17 @@ export function App() {
   const [pickDraft, setPickDraft] = useState<WishDraft | null>(null);
   const [backupOpen, setBackupOpen] = useState(false);
 
-  const selectedWish = useMemo(() => wishes.find((w) => w.id === selectedId) ?? null, [wishes, selectedId]);
+  const selectedWish = useMemo(
+    () => wishes.find((w) => w.id === selectedId) ?? older.find((w) => w.id === selectedId) ?? null,
+    [wishes, older, selectedId],
+  );
 
   // Ước nguyện đang xem bị gỡ ở tab khác (ERR-004-01)
   useEffect(() => {
     if (selectedId && !selectedWish) {
       const t = window.setTimeout(() => {
-        if (!useWishStore.getState().wishes.some((w) => w.id === selectedId)) {
+        const st = useWishStore.getState();
+        if (!st.wishes.some((w) => w.id === selectedId) && !st.older.some((w) => w.id === selectedId)) {
           select(null);
           if (useWishStore.getState().falling.every((f) => f.wish.id !== selectedId)) toast(vi.view.gone);
         }
@@ -64,10 +74,11 @@ export function App() {
 
   const focusWish = useCallback(
     (id: string) => {
-      const wish = useWishStore.getState().wishes.find((w) => w.id === id);
+      const st = useWishStore.getState();
+      const wish = st.wishes.find((w) => w.id === id) ?? st.older.find((w) => w.id === id);
       if (!wish) return;
       select(id);
-      cameraControls.flyTo(wish.slotId); // FR-004-03
+      if (wish.slotId) cameraControls.flyTo(wish.slotId); // FR-004-03; điều ước cũ (007) không có slot
     },
     [select],
   );
@@ -86,7 +97,18 @@ export function App() {
     [selectedId, visibleWishes, wishes, focusWish],
   );
 
-  const handleSubmit = (draft: WishDraft, opts: SubmitOptions): boolean => {
+  const handleSubmit = async (draft: WishDraft, opts: SubmitOptions): Promise<boolean> => {
+    if (composer.open && composer.mode === 'edit' && remote) {
+      // Sửa trên cây chung: chỉ người giữ owner token (FR-007-12)
+      const r = await remoteWishes.update(composer.wish.id, draft);
+      if (!r.ok) {
+        toast(remoteErrorText(r.error), { tone: 'error' });
+        return false;
+      }
+      events.emit('wish:updated', { wish: r.value });
+      setComposer({ open: false });
+      return true;
+    }
     if (composer.open && composer.mode === 'edit') {
       const r = useWishStore.getState().updateWish(composer.wish.id, draft);
       if (!r.ok) {
@@ -105,7 +127,7 @@ export function App() {
       select(null);
       return true;
     }
-    const r = hangFromDraft(draft);
+    const r = await hangWishAnyMode(draft);
     if (r.ok) {
       setComposer({ open: false });
       select(null);
@@ -197,7 +219,9 @@ export function App() {
             onClose={deselect}
             actions={
               <>
-                <WishActions wish={selectedWish} onEdit={(w) => setComposer({ open: true, mode: 'edit', wish: w })} onRemoved={deselect} />
+                {(!remote || remoteWishes.canManage(selectedWish.id)) && (
+                  <WishActions wish={selectedWish} onEdit={(w) => setComposer({ open: true, mode: 'edit', wish: w })} onRemoved={deselect} />
+                )}
                 <ShareButton wish={selectedWish} />
               </>
             }
@@ -209,6 +233,8 @@ export function App() {
         open={composer.open}
         mode={composer.open ? composer.mode : 'create'}
         initialValue={editInitial}
+        quota={remote ? quota ?? { remaining: 3, limit: 3 } : null}
+        allowPickSlot={!remote}
         onClose={() => setComposer({ open: false })}
         onSubmit={handleSubmit}
       />

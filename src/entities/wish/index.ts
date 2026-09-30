@@ -14,3 +14,6 @@ export {
   type FallingWish,
   type HangOptions,
 } from './wishStore';
+export { ownerTokens } from './ownerTokens';
+export { remoteWishes } from './remote/remoteStore';
+export type { Quota, RemoteError, RemoteWishRow } from './remote/remoteRepository';

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import {
   PAPER_COLORS,
   PAPER_HEX,
+  remoteWishes,
   useWishStore,
   WISH_CATEGORIES,
   type Wish,
 } from '@/entities/wish';
 import { vi } from '@/shared/i18n/vi';
 import { Modal } from '@/shared/ui/Modal';
+import { toast } from '@/shared/ui/toast';
 import { CategoryIcon, OrnamentIcon, LinkIcon } from '@/shared/ui/icons';
 import { formatWishDate, isFilterActive, MAX_QUERY, type WishSortOrder } from './filterWishes';
 import { useVisibleWishes, useWishViewStore } from './useWishView';
@@ -29,6 +31,16 @@ export function WishListDrawer({ onSelect, onCompose }: WishListDrawerProps) {
   const setFilter = useWishViewStore((s) => s.setFilter);
   const clearFilter = useWishViewStore((s) => s.clearFilter);
   const total = useWishStore((s) => s.wishes.length);
+  const hasMore = useWishStore((s) => s.hasMore);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Cây chung: tải thêm 100 điều ước cũ hơn (FR-007-14)
+  const loadMore = async () => {
+    setLoadingMore(true);
+    const r = await remoteWishes.loadMore();
+    setLoadingMore(false);
+    if (!r.ok) toast(vi.remote.loadFailed, { tone: 'error' });
+  };
   const { visibleWishes } = useVisibleWishes();
   const [query, setQuery] = useState(filter.query);
 
@@ -156,6 +168,11 @@ export function WishListDrawer({ onSelect, onCompose }: WishListDrawerProps) {
               ))}
             </ul>
           )}
+          {remoteWishes.enabled && hasMore && (
+            <button type="button" className="btn-secondary w-full" disabled={loadingMore} onClick={() => void loadMore()}>
+              {loadingMore ? vi.remote.sending : vi.remote.loadMore}
+            </button>
+          )}
         </div>
       )}
     </Modal>
@@ -180,6 +197,7 @@ function WishListItem({ wish, onSelect }: { wish: Wish; onSelect: (id: string) =
               · <LinkIcon size={13} /> {vi.view.shared}
             </>
           )}
+          {!wish.slotId && <> · {vi.remote.notOnTree}</>}
         </span>
       </span>
     </button>

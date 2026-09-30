@@ -8,7 +8,7 @@ Tài liệu này quy định cách mọi AI coding agent (Claude Code, Copilot, 
 ## 1. Tổng quan dự án
 
 - Website React (SPA tĩnh) hiển thị **mô hình 3D cây thông Giáng sinh** giữa trời tuyết (tuần lộc, người tuyết); người dùng viết **tờ giấy ước nguyện** và treo lên các tầng lá.
-- **Không có backend.** Dữ liệu lưu `localStorage`; chia sẻ qua URL.
+- **Backend tối thiểu (Constitution §II v2.0.0):** Supabase = Postgres + 1 Edge Function `wishes`. Chưa cấu hình Supabase thì app chạy chế độ local (localStorage).
 - Phương pháp: **Spec-Driven Development (SDD)** theo chuẩn **Spec Kit**; yêu cầu viết theo **EARS**.
 
 ## 2. Nguồn sự thật (Source of Truth)
@@ -27,7 +27,7 @@ Danh mục feature: [specs/README.md](specs/README.md).
 
 1. **Không code khi chưa có spec.** Nếu yêu cầu của người dùng không có trong spec → đề xuất cập nhật spec trước, chờ xác nhận.
 2. **Không bịa yêu cầu.** Điểm chưa rõ → ghi `[NEEDS CLARIFICATION: câu hỏi]` vào spec, không tự đoán.
-3. **Không thêm backend**, server, serverless function, database, hay gọi API bên ngoài lúc runtime.
+3. **Không thêm backend nào ngoài Supabase đã chốt** (Postgres + Edge Function `wishes`). Luật nghiệp vụ (giới hạn 3 điều ước/IP, quyền sửa/gỡ) phải thực thi ở server/database. Không dùng `supabase-js` khi `fetch` đủ dùng.
 4. **Truy vết ID.** Mọi commit / PR / test phải tham chiếu `FR-xxx-yy` hoặc `AC-xxx-yy`.
 5. **Validate mọi input ngoài** (localStorage, URL, file, form) bằng Zod schema trong `src/entities/wish/`.
 6. **Dùng lại model `Wish` chung** ở `src/entities/wish`; không định nghĩa lại kiểu Wish trong feature.
@@ -44,6 +44,8 @@ Danh mục feature: [specs/README.md](specs/README.md).
 - Không sửa `constitution.md` trừ khi người dùng yêu cầu rõ ràng.
 - Không xoá/đổi ID của FR/AC đã tồn tại; nếu bỏ yêu cầu, đánh dấu `~~FR-xxx~~ (Deprecated: lý do)`.
 - Không commit file model > 3 MB hoặc asset chưa nén.
+- Không đưa service-role key, salt băm IP hay bất kỳ bí mật nào vào frontend / git. Frontend chỉ dùng anon key qua biến `VITE_SUPABASE_*`.
+- Không lưu hay log IP gốc; chỉ lưu HMAC-SHA256 (Constitution §VII).
 
 ## 5. Quy trình làm việc của agent
 
@@ -69,6 +71,8 @@ Danh mục feature: [specs/README.md](specs/README.md).
 | Unit test | `npm test` |
 | E2E | `npm run test:e2e` (dùng Chrome đã cài; `PW_CHANNEL=""` để dùng Chromium) |
 | Build tĩnh | `npm run build` |
+| DB migration | `npx supabase db push` (sau `npx supabase link --project-ref <ref>`) |
+| Deploy function | `npx supabase functions deploy wishes --no-verify-jwt` |
 
 ## 7. Quy ước viết spec
 

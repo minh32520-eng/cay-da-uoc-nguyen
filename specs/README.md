@@ -1,6 +1,6 @@
 # Danh mục Feature — Cây Thông Ước Nguyện (Giáng sinh)
 
-Ứng dụng React chỉ chạy phía client (không backend). Mọi spec tuân theo [Constitution](../.specify/memory/constitution.md) và [AGENTS.md](../AGENTS.md).
+Ứng dụng React (SPA tĩnh) + backend tối thiểu Supabase cho cây ước nguyện chung (007). Mọi spec tuân theo [Constitution](../.specify/memory/constitution.md) và [AGENTS.md](../AGENTS.md).
 
 | ID | Feature | Mô tả ngắn | Phụ thuộc | Ưu tiên | Trạng thái |
 |---|---|---|---|---|---|
@@ -10,6 +10,7 @@
 | [004](004-view-browse-wish/spec.md) | Xem & duyệt ước nguyện | Click tờ giấy để đọc, danh sách truy cập được, tìm kiếm & lọc | 003 | P1 | Draft |
 | [005](005-manage-wish/spec.md) | Quản lý ước nguyện | Sửa, gỡ, xuất/nhập file JSON, xoá toàn bộ | 003 | P2 | Draft |
 | [006](006-share-wish/spec.md) | Chia sẻ ước nguyện | Tạo link chia sẻ (dữ liệu mã hoá trong URL), mở link để xem & treo | 003, 004 | P2 | Draft |
+| [007](007-shared-wishes/spec.md) | Cây ước nguyện chung | Database Supabase: mọi người thấy điều ước của nhau, tối đa 3 điều ước/IP, chỉ người viết sửa/gỡ | 001–006 | P1 | Approved |
 
 ## Mô hình dữ liệu dùng chung
 

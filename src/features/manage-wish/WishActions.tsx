@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useWishStore, type UndoEntry, type Wish } from '@/entities/wish';
+import { remoteWishes, useWishStore, type UndoEntry, type Wish } from '@/entities/wish';
+import { remoteErrorText } from '@/features/hang-wish';
 import { events } from '@/shared/lib/events';
 import { vi } from '@/shared/i18n/vi';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
@@ -28,8 +29,34 @@ interface WishActionsProps {
 export function WishActions({ wish, onEdit, onRemoved }: WishActionsProps) {
   const [confirming, setConfirming] = useState(false);
 
+  const removeRemote = async () => {
+    // Cây chung: gỡ mềm qua server bằng owner token, hoàn tác trong 60 s (FR-007-12, FR-007-13)
+    const r = await remoteWishes.remove(wish.id);
+    if (!r.ok) {
+      toast(remoteErrorText(r.error), { tone: 'error' });
+      return;
+    }
+    events.emit('wish:removed', { wishId: wish.id });
+    onRemoved?.();
+    toast(vi.manage.removed, {
+      durationMs: UNDO_MS,
+      action: {
+        label: vi.manage.undo,
+        onClick: () =>
+          void remoteWishes.restore(wish.id).then((res) => {
+            if (res.ok) events.emit('wish:restored', { wish: res.value });
+            else toast(remoteErrorText(res.error), { tone: 'error' });
+          }),
+      },
+    });
+  };
+
   const remove = () => {
     setConfirming(false);
+    if (remoteWishes.enabled) {
+      void removeRemote();
+      return;
+    }
     const r = useWishStore.getState().removeWish(wish.id);
     if (!r.ok) return;
     events.emit('wish:removed', { wishId: wish.id });

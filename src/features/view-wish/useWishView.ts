@@ -55,7 +55,10 @@ export const useWishViewStore = create<WishViewState>()((set, get) => ({
 
 /** Danh sách đã lọc + id được làm nổi bật trên cây (FR-004-09). */
 export function useVisibleWishes() {
-  const wishes = useWishStore((s) => s.wishes);
+  const tree = useWishStore((s) => s.wishes);
+  const older = useWishStore((s) => s.older);
+  // Cây chung: danh sách gồm cả điều ước cũ không còn trên cây (FR-007-14)
+  const wishes = useMemo(() => (older.length ? [...tree, ...older] : tree), [tree, older]);
   const filter = useWishViewStore((s) => s.filter);
   return useMemo(() => {
     const visibleWishes = filterWishes(wishes, filter);

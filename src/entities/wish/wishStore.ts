@@ -15,6 +15,7 @@ import type {
   WishDraft,
 } from './types';
 import { wishRepository } from './wishRepository';
+import type { Quota } from './remote/remoteRepository';
 
 export interface HangingAnimation {
   wishId: string;
@@ -43,6 +44,11 @@ interface WishState {
   corruptedOnLoad: boolean;
   animation: HangingAnimation | null;
   falling: FallingWish[];
+  /** Chế độ remote (007): điều ước cũ hơn 100 cái trên cây, chỉ hiện trong danh sách. */
+  older: Wish[];
+  hasMore: boolean;
+  /** Lượt viết còn lại của IP hiện tại (FR-007-05); null ở chế độ local. */
+  quota: Quota | null;
 
   hydrate(): void;
   hangWish(draft: WishDraft, opts?: HangOptions): HangResult;
@@ -110,6 +116,9 @@ export const useWishStore = create<WishState>()((set, get) => ({
   corruptedOnLoad: false,
   animation: null,
   falling: [],
+  older: [],
+  hasMore: false,
+  quota: null,
 
   hydrate() {
     const { wishes, corrupted } = wishRepository.load();

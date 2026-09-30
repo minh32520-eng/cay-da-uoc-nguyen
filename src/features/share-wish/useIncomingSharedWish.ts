@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
-import { selectIsFull, useWishStore, type HangResult } from '@/entities/wish';
-import { hangFromDraft } from '@/features/hang-wish';
+import { remoteWishes, selectIsFull, useWishStore } from '@/entities/wish';
+import { hangFromDraft, hangWishAnyMode } from '@/features/hang-wish';
 import { events } from '@/shared/lib/events';
 import { vi } from '@/shared/i18n/vi';
 import { toast } from '@/shared/ui/toast';
@@ -21,7 +21,8 @@ interface IncomingState {
   error: string | null;
   readFromHash(hash: string): void;
   dismiss(): void;
-  accept(): HangResult | null;
+  /** Trả true nếu đã treo thành công. */
+  accept(): Promise<boolean>;
 }
 
 /** Xoá hash mà không tải lại trang (FR-006-11). */
@@ -57,24 +58,40 @@ export const useIncomingStore = create<IncomingState>()((set, get) => ({
     clearHash();
   },
 
-  accept() {
+  async accept() {
     const incoming = get().incoming;
-    if (!incoming) return null;
+    if (!incoming) return false;
     const store = useWishStore.getState();
+    if (remoteWishes.enabled) {
+      // Cây chung: trùng khi đã có điều ước cùng nội dung & tên; tạo mới tính vào 3 lượt (FR-007-16)
+      const dup = [...store.wishes, ...store.older].some(
+        (w) => w.content === incoming.draft.content && w.author === incoming.draft.author,
+      );
+      if (dup) {
+        toast(vi.share.duplicate);
+        return false;
+      }
+      const r = await hangWishAnyMode(incoming.draft, { source: 'shared' });
+      if (r.ok) {
+        events.emit('share:accepted', { wish: r.wish });
+        get().dismiss();
+      }
+      return r.ok;
+    }
     if (isDuplicateOf(incoming, store.wishes)) {
       toast(vi.share.duplicate); // ERR-006-08
-      return null;
+      return false;
     }
     if (selectIsFull(store)) {
       toast(vi.share.treeFull, { tone: 'error' }); // ERR-006-07
-      return null;
+      return false;
     }
     const r = hangFromDraft(incoming.draft, { source: 'shared', createdAt: incoming.originalCreatedAt });
     if (r.ok) {
       events.emit('share:accepted', { wish: r.wish });
       get().dismiss();
     }
-    return r;
+    return r.ok;
   },
 }));
 

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useWishStore, type ImportMode, type ImportPreview } from '@/entities/wish';
+import { remoteWishes, useWishStore, type ImportMode, type ImportPreview } from '@/entities/wish';
 import { events } from '@/shared/lib/events';
 import { vi } from '@/shared/i18n/vi';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
@@ -20,6 +20,7 @@ export function BackupPanel({ open, onClose }: BackupPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const count = useWishStore((s) => s.wishes.length);
+  const remote = remoteWishes.enabled;
 
   const onFile = async (file: File | undefined) => {
     setError(null);
@@ -62,12 +63,17 @@ export function BackupPanel({ open, onClose }: BackupPanelProps) {
               type="button"
               className="btn-primary w-full"
               disabled={count === 0}
-              onClick={() => backupService.exportToFile(useWishStore.getState().wishes)}
+              onClick={() => {
+                const st = useWishStore.getState();
+                backupService.exportToFile([...st.wishes, ...st.older]);
+              }}
             >
               <DownloadIcon size={18} /> {vi.manage.exportBtn} ({vi.app.counter(count, 100)})
             </button>
           </section>
 
+          {/* Cây chung: ẩn nhập / xoá toàn bộ (FR-007-15) */}
+          {!remote && (
           <section className="space-y-2">
             <label className="btn-secondary block w-full cursor-pointer text-center focus-within:ring-2 focus-within:ring-amber-300">
               <UploadIcon size={18} className="mr-1 inline" /> {vi.manage.importBtn}
@@ -104,12 +110,15 @@ export function BackupPanel({ open, onClose }: BackupPanelProps) {
               </div>
             )}
           </section>
+          )}
 
+          {!remote && (
           <section className="border-t border-amber-100/10 pt-4">
             <button type="button" className="btn-danger w-full" disabled={count === 0} onClick={() => setConfirmClear(true)}>
               <TrashIcon size={18} /> {vi.manage.clearAll}
             </button>
           </section>
+          )}
         </div>
       </Modal>
       <ConfirmDialog
