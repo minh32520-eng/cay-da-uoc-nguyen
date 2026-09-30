@@ -48,7 +48,7 @@
 | FR-001-17 | Ubiquitous | THE system SHALL hiển thị 3–4 người tuyết (3 khối tuyết, mũi cà rốt, mắt & cúc than, tay cành cây, khăn quàng, mũ) đứng quanh gốc cây. |
 | FR-001-18 | Unwanted | IF một con tuần lộc sắp chạm vật cản (đá, bụi, hộp quà, người tuyết, thân cây, tuần lộc khác), THEN THE system SHALL lái tuần lộc tránh sang hướng khác và không bao giờ để thân tuần lộc chồng lên vật cản. |
 | FR-001-19 | Ubiquitous | THE system SHALL đặt quả châu sao cho không quả nào che tờ giấy ước nguyện khi nhìn từ ngoài vào (không đồng thời chồng lấn theo cung tròn quanh thân, theo độ cao kể cả dây treo, và nằm phía trước tờ giấy; không chạm tờ giấy). |
-| FR-001-20 | State-driven | WHILE cảnh 3D đang chạy, THE system SHALL cho ông già Noel ngồi xe trượt tuyết do 4 tuần lộc kéo (con đầu mũi đỏ phát sáng) bay ngang bầu trời phía sau cây trong khoảng 8 s, xe lượn nhẹ, tuần lộc phi nước đại, để lại vệt bụi sao lấp lánh. |
+| FR-001-20 | State-driven | WHILE cảnh 3D đang chạy, THE system SHALL cho **hình bóng tối** (silhouette) ông già Noel ngồi xe trượt tuyết do 4 tuần lộc kéo bay ngang bầu trời trong khoảng 8 s, đi qua trước mặt trăng; trăng và đường bay xoay theo phương vị camera để luôn ở cùng chỗ trên trời. |
 | FR-001-21 | Event-driven | WHEN một lượt bay kết thúc, THE system SHALL nghỉ một khoảng ngẫu nhiên 5–8 s rồi bắt đầu lượt bay mới, hướng bay đổi xen kẽ trái → phải và phải → trái. |
 
 ## 4. Non-Functional Requirements
@@ -184,6 +184,8 @@ GROUND_OBSTACLES: readonly Obstacle[]
 | AC-001-20 | FR-001-20, 21, NFR-001-11 | Lịch bay với seed cố định | Mô phỏng 5 phút | Mỗi lượt bay 8 s; mỗi khoảng nghỉ 5–8 s; hướng bay đổi xen kẽ |
 | AC-001-21 | FR-001-20 | Quỹ đạo bay | Lấy mẫu toàn lượt | Xe luôn cao hơn ngôi sao trên đỉnh cây ≥ 2 đơn vị, nằm phía sau cây, đi từ mép này sang mép kia |
 | AC-001-22 | FR-001-09 | Bật reduced-motion | Mô phỏng 30 s | Xe trượt tuyết không bay |
+| AC-001-23 | FR-001-20 | Đường bay & vị trí trăng | Nhìn từ camera gốc tại giữa lượt bay | Hình bóng nằm trong đĩa mặt trăng (lệch tâm < 60% bán kính góc) |
+| AC-001-23 | FR-001-20 | Camera ở vị trí gốc | Lấy vị trí giữa lượt bay | Hình bóng nằm trong đĩa mặt trăng khi nhìn từ camera |
 
 ## 9. Out of Scope
 
@@ -203,3 +205,5 @@ GROUND_OBSTACLES: readonly Obstacle[]
 | 2026-09-25 | Bản đầu: cây đa đêm Trung Thu, đèn lồng, thỏ ngọc. |
 | 2026-09-30 | Theo yêu cầu người dùng: chuyển sang cây thông Giáng sinh. Sửa nội dung FR-001-01, 07, 09, 10, 12, 13; NFR-001-02; ERR-001-02, 05; AC-001-01, 07, 08, 09. Thêm FR-001-15..19, NFR-001-09..10, ERR-001-06, AC-001-14..19. Thỏ ngọc được thay bằng tuần lộc; thêm người tuyết và tuyết rơi. Tiêu chí FR-001-19/AC-001-18 đổi từ "cách ≥ 1.0" sang "không che khi nhìn từ ngoài" vì mép tầng lá dày đặc chỗ treo. |
 | 2026-10-01 | Theo yêu cầu người dùng: thêm ông già Noel cưỡi xe tuần lộc bay ngang trời, nghỉ 5–8 s rồi lặp lại (FR-001-20, 21; NFR-001-11; AC-001-20..22), chỉ ở cảnh 3D. |
+| 2026-10-01 | Theo yêu cầu người dùng: ông già Noel chỉ còn dạng hình bóng, bay ngang qua trước mặt trăng (sửa FR-001-20, thêm AC-001-23); bỏ vệt bụi sao; trăng lớn hơn, xoay theo camera. |
+| 2026-10-01 | Theo yêu cầu người dùng: ông già Noel chỉ còn là hình bóng tối bay qua trước mặt trăng (FR-001-20 sửa nội dung; thêm AC-001-23); bỏ vệt bụi sao; trăng to hơn và xoay theo camera. |

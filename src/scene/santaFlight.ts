@@ -1,7 +1,8 @@
+import { MOON_POSITION, VIEW_ORIGIN } from './sky';
 import type { Vec3 } from './types';
 
 /**
- * Lịch bay & quỹ đạo của xe trượt tuyết ông già Noel (FR-001-20, FR-001-21, NFR-001-11).
+ * Lịch bay & quỹ đạo của hình bóng ông già Noel (FR-001-20, FR-001-21, NFR-001-11).
  * Logic thuần: một lượt bay 8 s, nghỉ ngẫu nhiên 5–8 s, hướng bay đổi xen kẽ.
  */
 
@@ -48,16 +49,31 @@ export function stepSantaFlight(f: SantaFlight, dtMs: number, rnd: () => number,
   }
 }
 
-const X_SPAN = 54;
+/** Độ sâu (z) của đường bay: phía sau cây, trước mặt trăng. */
+export const FLIGHT_Z = -36;
+const HALF_SPAN = 72;
 
-/** Vị trí + góc chúc/nghiêng của xe theo tiến độ p (0..1). */
+/** Điểm mà tia nhìn từ camera tới tâm trăng cắt mặt phẳng z = FLIGHT_Z. */
+export const MOON_CROSSING: Vec3 = (() => {
+  const t = (FLIGHT_Z - VIEW_ORIGIN[2]) / (MOON_POSITION[2] - VIEW_ORIGIN[2]);
+  return [
+    VIEW_ORIGIN[0] + (MOON_POSITION[0] - VIEW_ORIGIN[0]) * t,
+    VIEW_ORIGIN[1] + (MOON_POSITION[1] - VIEW_ORIGIN[1]) * t,
+    FLIGHT_Z,
+  ];
+})();
+
+/**
+ * Vị trí + góc chúc/nghiêng theo tiến độ p (0..1) trong khung nhìn gốc.
+ * Giữa lượt bay (p = 0.5) hình bóng đi ngang qua tâm mặt trăng.
+ */
 export function santaPosition(p: number, dir: 1 | -1): { position: Vec3; pitch: number; roll: number } {
-  const x = (p * 2 - 1) * X_SPAN * dir;
-  // Vòng cung lên cao ở giữa trời, nhấp nhô nhẹ như đang phi
-  const y = 11.6 + Math.sin(p * Math.PI) * 0.9 + Math.sin(p * Math.PI * 7) * 0.25;
-  const z = -40 + Math.sin(p * Math.PI) * 4;
-  const dy = Math.cos(p * Math.PI) * Math.PI * 0.9 + Math.cos(p * Math.PI * 7) * Math.PI * 7 * 0.25;
-  const pitch = Math.atan2(dy, X_SPAN * 2) * 1.5;
-  const roll = Math.sin(p * Math.PI * 2) * 0.12 * dir;
-  return { position: [x, y, z], pitch, roll };
+  const [cx, cy] = MOON_CROSSING;
+  const x = cx + (p * 2 - 1) * HALF_SPAN * dir;
+  // Vòng cung nhẹ, đỉnh đúng tâm trăng, nhấp nhô như đang phi
+  const y = cy + Math.sin(p * Math.PI) * 0.8 - 0.8 + Math.sin(p * Math.PI * 7) * 0.2;
+  const dy = Math.cos(p * Math.PI) * Math.PI * 0.8 + Math.cos(p * Math.PI * 7) * Math.PI * 7 * 0.2;
+  const pitch = Math.atan2(dy, HALF_SPAN * 2) * 1.5;
+  const roll = Math.sin(p * Math.PI * 2) * 0.1 * dir;
+  return { position: [x, y, FLIGHT_Z], pitch, roll };
 }

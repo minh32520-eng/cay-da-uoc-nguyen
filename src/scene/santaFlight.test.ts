@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '@/shared/lib/random';
 import { createSantaFlight, FLIGHT_MS, REST_MAX_MS, REST_MIN_MS, santaPosition, stepSantaFlight } from './santaFlight';
+import { MOON_POSITION, MOON_RADIUS, VIEW_ORIGIN } from './sky';
 import { TREE_LAYOUT } from './treeLayout';
 
 describe('Ông già Noel bay ngang trời (FR-001-20, FR-001-21)', () => {
@@ -49,6 +50,22 @@ describe('Ông già Noel bay ngang trời (FR-001-20, FR-001-21)', () => {
       expect(Math.max(...xs)).toBeGreaterThan(30);
       // Đi đúng hướng
       expect(Math.sign(xs[200]! - xs[0]!)).toBe(dir);
+    }
+  });
+
+  it('AC-001-23: hình bóng bay ngang qua đĩa mặt trăng khi nhìn từ camera', () => {
+    const dirTo = (p: readonly number[]) => {
+      const v = p.map((c, i) => c - VIEW_ORIGIN[i]!);
+      const n = Math.hypot(...v);
+      return v.map((c) => c / n);
+    };
+    const moon = dirTo(MOON_POSITION);
+    const moonDist = Math.hypot(...MOON_POSITION.map((c, i) => c - VIEW_ORIGIN[i]!));
+    const moonAngle = Math.asin(MOON_RADIUS / moonDist);
+    for (const dir of [1, -1] as const) {
+      const d = dirTo(santaPosition(0.5, dir).position);
+      const angle = Math.acos(Math.min(1, d.reduce((a, c, i) => a + c * moon[i]!, 0)));
+      expect(angle).toBeLessThan(moonAngle * 0.6);
     }
   });
 

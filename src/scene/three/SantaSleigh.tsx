@@ -5,11 +5,10 @@ import { mulberry32 } from '@/shared/lib/random';
 import { createSantaFlight, santaPosition, stepSantaFlight } from '../santaFlight';
 import { antlerGeometry } from './antlers';
 import { furMaterial, lumpySphere, withVerticalGradient } from './furUtils';
-import { glowTexture } from './textures';
 
 /**
- * Ông già Noel cưỡi xe trượt tuyết do 4 tuần lộc kéo, bay ngang trời phía sau cây
- * (FR-001-20), nghỉ 5–8 s rồi bay lại, đổi hướng xen kẽ (FR-001-21).
+ * Hình bóng ông già Noel cưỡi xe trượt tuyết do 4 tuần lộc kéo, bay ngang qua trước
+ * mặt trăng (FR-001-20), nghỉ 5–8 s rồi bay lại, đổi hướng xen kẽ (FR-001-21).
  * Toàn bộ dựng bằng code; hướng "trước" của model là +z.
  */
 
@@ -113,11 +112,6 @@ function FlyingReindeer({
           {M(geos.smooth, mats.eye, [-0.09, 0.04, 0.1], [0.02, 0.022, 0.02])}
           <mesh geometry={geos.antlerL} material={mats.antler} position={[0.05, 0.09, -0.02]} scale={0.85} />
           <mesh geometry={geos.antlerR} material={mats.antler} position={[-0.05, 0.09, -0.02]} scale={0.85} />
-          {red && (
-            <sprite position={[0, -0.02, 0.33]} scale={[0.5, 0.5, 1]}>
-              <spriteMaterial map={glowTexture()} color="#ff3b3b" transparent opacity={0.9} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
-            </sprite>
-          )}
         </group>
       </group>
     </group>
@@ -165,9 +159,11 @@ function useSharedGeos() {
   }, []);
 }
 
-/* ---------------- Vệt bụi sao ---------------- */
+/* ---------------- Hình bóng ---------------- */
 
-const TRAIL = 160;
+/** Mọi bộ phận dùng một màu tối phẳng → hình bóng in trên mặt trăng (FR-001-20). */
+const SILHOUETTE = new THREE.MeshBasicMaterial({ color: '#070a16', fog: false });
+const SILHOUETTE_LINE = new THREE.LineBasicMaterial({ color: '#070a16', fog: false });
 
 export function SantaSleigh({ animate }: { animate: boolean }) {
   const rnd = useMemo(() => mulberry32(2412), []);
@@ -178,22 +174,13 @@ export function SantaSleigh({ animate }: { animate: boolean }) {
   const mats = useSharedMats();
   const geos = useSharedGeos();
 
-  const trail = useMemo(() => {
-    const positions = new Float32Array(TRAIL * 3).fill(-999);
-    const colors = new Float32Array(TRAIL * 3);
-    const life = new Float32Array(TRAIL);
-    const vel = new Float32Array(TRAIL * 3);
-    return { positions, colors, life, vel, next: 0, acc: 0 };
-  }, []);
-  const trailRef = useRef<THREE.Points>(null);
   const reinRef = useRef<THREE.LineSegments>(null);
-  const tmp = useMemo(() => ({ v: new THREE.Vector3(), c: new THREE.Color() }), []);
 
-  // Xe bay xa phía sau cây: không phủ sương mù để vẫn rõ nét
+  // Chỉ giữ hình dáng: mọi mesh/đường dùng màu hình bóng, không phủ sương mù
   useEffect(() => {
     group.current?.traverse((o) => {
-      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
-      for (const mat of Array.isArray(m) ? m : m ? [m] : []) (mat as THREE.Material & { fog?: boolean }).fog = false;
+      if ((o as THREE.LineSegments).isLineSegments) (o as THREE.LineSegments).material = SILHOUETTE_LINE;
+      else if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = SILHOUETTE;
     });
   }, []);
 
@@ -251,33 +238,6 @@ export function SantaSleigh({ animate }: { animate: boolean }) {
       });
       arr.needsUpdate = true;
 
-      // Phát bụi sao ở đuôi xe (toạ độ thế giới)
-      trail.acc += dt * 90;
-      while (trail.acc >= 1) {
-        trail.acc -= 1;
-        const k = trail.next;
-        trail.next = (trail.next + 1) % TRAIL;
-        tmp.v.set((rnd() - 0.5) * 0.6, 0.3 + rnd() * 0.3, -1.1).applyMatrix4(g.matrixWorld);
-        trail.positions.set([tmp.v.x, tmp.v.y, tmp.v.z], k * 3);
-        trail.vel.set([(rnd() - 0.5) * 0.4, -0.3 - rnd() * 0.4, (rnd() - 0.5) * 0.4], k * 3);
-        trail.life[k] = 1;
-      }
-    }
-
-    // Bụi sao rơi chậm và tắt dần (kể cả sau khi xe đã bay qua)
-    for (let k = 0; k < TRAIL; k++) {
-      const life = trail.life[k]!;
-      if (life <= 0) continue;
-      const nl = Math.max(0, life - dt / 1.6);
-      trail.life[k] = nl;
-      for (let a = 0; a < 3; a++) trail.positions[k * 3 + a] = trail.positions[k * 3 + a]! + trail.vel[k * 3 + a]! * dt;
-      tmp.c.setHSL(0.12 + (k % 5) * 0.02, 1, 0.55 + 0.35 * nl).multiplyScalar(nl);
-      trail.colors.set([tmp.c.r, tmp.c.g, tmp.c.b], k * 3);
-    }
-    const pts = trailRef.current;
-    if (pts) {
-      pts.geometry.attributes.position!.needsUpdate = true;
-      pts.geometry.attributes.color!.needsUpdate = true;
     }
   });
 
@@ -287,7 +247,7 @@ export function SantaSleigh({ animate }: { animate: boolean }) {
 
   return (
     <>
-      <group ref={group} scale={2.4} visible={false}>
+      <group ref={group} scale={1.7} visible={false}>
         {/* Xe */}
         <mesh geometry={geos.sleighBody} material={mats.sleigh} />
         {[-0.5, 0.5].map((x) => (
@@ -370,13 +330,6 @@ export function SantaSleigh({ animate }: { animate: boolean }) {
         </lineSegments>
       </group>
 
-      <points ref={trailRef} frustumCulled={false}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[trail.positions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[trail.colors, 3]} />
-        </bufferGeometry>
-        <pointsMaterial map={glowTexture()} vertexColors size={0.35} transparent depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation fog={false} />
-      </points>
     </>
   );
 }

@@ -5,18 +5,23 @@ import * as THREE from 'three';
 import { mulberry32 } from '@/shared/lib/random';
 import { GROUND_LAYOUT, type Placed } from '../groundLayout';
 import { snowflakeCount } from '../snow';
+import { MOON_POSITION, MOON_RADIUS } from '../sky';
 import { TREE_LAYOUT } from '../treeLayout';
 import { cloudTexture, glowTexture, moonTexture, snowflakeTexture } from './textures';
 
-export const MOON_POSITION: [number, number, number] = [-30, 13, -46];
+export { MOON_POSITION } from '../sky';
 const SNOW_WHITE = new THREE.Color('#f3f7ff');
 
 /* ---------------- Bầu trời đêm mùa đông ---------------- */
 
 export function Sky({ animate }: { animate: boolean }) {
   const clouds = useRef<THREE.Group>(null);
-  useFrame(({ clock }) => {
+  const backdrop = useRef<THREE.Group>(null);
+  useFrame(({ clock, camera }) => {
     if (animate && clouds.current) clouds.current.position.x = Math.sin(clock.getElapsedTime() * 0.02) * 4;
+    // Trăng & mây là phông nền: xoay theo phương vị camera để luôn ở cùng chỗ trên trời,
+    // nơi hình bóng ông già Noel bay ngang qua (FR-001-20)
+    if (backdrop.current) backdrop.current.rotation.y = Math.atan2(camera.position.x, camera.position.z);
   });
 
   return (
@@ -24,11 +29,12 @@ export function Sky({ animate }: { animate: boolean }) {
       <color attach="background" args={['#0a1128']} />
       <fog attach="fog" args={['#1a2446', 22, 70]} />
       <Stars radius={90} depth={40} count={2500} factor={3} saturation={0.1} fade speed={animate ? 0.5 : 0} />
+      <group ref={backdrop}>
       <mesh position={MOON_POSITION}>
-        <sphereGeometry args={[4, 48, 48]} />
+        <sphereGeometry args={[MOON_RADIUS, 64, 64]} />
         <meshBasicMaterial map={moonTexture()} color="#eef3ff" fog={false} toneMapped={false} />
       </mesh>
-      <sprite position={MOON_POSITION} scale={[24, 24, 1]}>
+      <sprite position={MOON_POSITION} scale={[MOON_RADIUS * 6, MOON_RADIUS * 6, 1]}>
         <spriteMaterial map={glowTexture()} color="#cfdcff" transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
       </sprite>
       <group ref={clouds}>
@@ -41,6 +47,7 @@ export function Sky({ animate }: { animate: boolean }) {
             <spriteMaterial map={cloudTexture()} color="#c3cde8" transparent opacity={0.3} depthWrite={false} fog={false} />
           </sprite>
         ))}
+      </group>
       </group>
 
       <ambientLight intensity={0.65} color="#9fb3ff" />
