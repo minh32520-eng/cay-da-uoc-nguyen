@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mulberry32 } from '@/shared/lib/random';
 import { coneSurfaceY, TREE_LAYOUT, type PineLayer } from '../treeLayout';
 import { pineSprigTexture } from './textures';
@@ -78,7 +79,7 @@ function buildSprigs(): Sprig[] {
   const out: Sprig[] = [];
   const up = new THREE.Vector3(0, 1, 0);
   for (const layer of TREE_LAYOUT.layers) {
-    const count = Math.round(layer.radius * 120);
+    const count = Math.round(layer.radius * 165);
     for (let i = 0; i < count; i++) {
       const th = rnd() * Math.PI * 2;
       const k = 0.15 + Math.sqrt(rnd()) * 0.8;
@@ -109,7 +110,33 @@ function buildSprigs(): Sprig[] {
   return out;
 }
 
+/** Dây kim tuyến vàng rủ thành từng vòng cung trên mặt mỗi tầng, nằm phía sau các tờ giấy. */
+function buildTinsel(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  TREE_LAYOUT.layers.slice(0, -1).forEach((layer, li) => {
+    const r = layer.radius * 0.55;
+    const swags = Math.max(4, Math.round(layer.radius * 3));
+    const base = coneSurfaceY(layer, r)! + 0.07;
+    for (let k = 0; k < swags; k++) {
+      const pts: THREE.Vector3[] = [];
+      for (let i = 0; i <= 12; i++) {
+        const u = i / 12;
+        const a = li * 0.8 + ((k + u) / swags) * Math.PI * 2;
+        // Rủ xuống giữa hai điểm móc, bám theo mặt lá
+        const rr = r + Math.sin(u * Math.PI) * 0.18;
+        const y = Math.max(coneSurfaceY(layer, rr)! + 0.05, base - Math.sin(u * Math.PI) * 0.12);
+        pts.push(new THREE.Vector3(Math.cos(a) * rr, y, Math.sin(a) * rr));
+      }
+      parts.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.024, 6, false));
+    }
+  });
+  const g = mergeGeometries(parts, false) ?? new THREE.BufferGeometry();
+  parts.forEach((p) => p.dispose());
+  return g;
+}
+
 export function Tree({ animate }: { animate: boolean }) {
+  const tinsel = useMemo(buildTinsel, []);
   const layers = useMemo(() => TREE_LAYOUT.layers.map((l, i) => layerGeometry(l, 100 + i)), []);
   const sprigs = useMemo(buildSprigs, []);
   const sprigRef = useRef<THREE.InstancedMesh>(null);
@@ -167,6 +194,9 @@ export function Tree({ animate }: { animate: boolean }) {
           <meshStandardMaterial vertexColors roughness={0.9} side={THREE.DoubleSide} />
         </mesh>
       ))}
+      <mesh geometry={tinsel}>
+        <meshStandardMaterial color="#f2c14e" emissive="#8a5a00" emissiveIntensity={0.5} metalness={0.9} roughness={0.25} />
+      </mesh>
       <instancedMesh ref={sprigRef} args={[undefined, sprigMaterial, sprigs.length]} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
       </instancedMesh>

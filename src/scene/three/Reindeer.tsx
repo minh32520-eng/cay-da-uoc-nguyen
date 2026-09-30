@@ -1,10 +1,10 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mulberry32 } from '@/shared/lib/random';
 import { createBrain, REINDEER, REINDEER_COUNT, stepBrain, type AnimalBrain } from '../animalBrain';
 import { GROUND_OBSTACLES } from '../groundLayout';
+import { antlerGeometry } from './antlers';
 import { furMaterial, lumpySphere, withVerticalGradient } from './furUtils';
 
 /**
@@ -18,25 +18,6 @@ const CREAM = '#e9ddc7';
 
 /** Đàn tuần lộc dùng chung để tách nhau ra và cho camera xem thử (?animalcam). */
 export const REINDEER_HERD: AnimalBrain[] = [];
-
-function antlerGeometry(side: 1 | -1): THREE.BufferGeometry {
-  const V = (x: number, y: number, z: number) => new THREE.Vector3(x * side, y, z);
-  const beamPts = [V(0, 0, 0), V(0.1, 0.2, -0.06), V(0.2, 0.42, -0.12), V(0.2, 0.62, -0.06), V(0.12, 0.78, 0.04)];
-  const beam = new THREE.CatmullRomCurve3(beamPts);
-  const parts = [new THREE.TubeGeometry(beam, 20, 0.022, 6, false)];
-  const tine = (t: number, d: THREE.Vector3, r: number) => {
-    const p = beam.getPointAt(t);
-    const mid = p.clone().add(d.clone().multiplyScalar(0.5)).add(new THREE.Vector3(0, 0.02, 0));
-    parts.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([p, mid, p.clone().add(d)]), 8, r, 5, false));
-  };
-  tine(0.12, V(0.02, 0.06, 0.2), 0.016); // gạc trán
-  tine(0.35, V(0.04, 0.16, 0.12), 0.015);
-  tine(0.55, V(0.1, 0.16, 0.08), 0.014);
-  tine(0.75, V(-0.06, 0.15, 0.09), 0.013);
-  const g = mergeGeometries(parts, false) ?? new THREE.BufferGeometry();
-  parts.forEach((p) => p.dispose());
-  return g;
-}
 
 function Deer({ index, brain, animate }: { index: number; brain: AnimalBrain; animate: boolean }) {
   const root = useRef<THREE.Group>(null);
@@ -63,9 +44,11 @@ function Deer({ index, brain, animate }: { index: number; brain: AnimalBrain; an
       cream: furMaterial(cream),
       mane: lumpySphere(index + 5, 0.14),
       smooth: new THREE.SphereGeometry(1, 20, 14),
-      leg: new THREE.CylinderGeometry(0.03, 0.038, 0.5, 8),
+      leg: new THREE.CylinderGeometry(0.036, 0.046, 0.5, 10),
       hoof: new THREE.MeshStandardMaterial({ color: '#1e1612', roughness: 0.6 }),
-      shin: new THREE.MeshStandardMaterial({ color: '#3b2a1f', roughness: 0.9 }),
+      shin: furMaterial('#6b4d38'),
+      collar: new THREE.MeshStandardMaterial({ color: '#b3121f', roughness: 0.5 }),
+      bell: new THREE.MeshStandardMaterial({ color: '#e0b54a', metalness: 0.85, roughness: 0.25 }),
       antlerL: antlerGeometry(1),
       antlerR: antlerGeometry(-1),
       antler: new THREE.MeshStandardMaterial({ color: '#dccaa4', roughness: 0.7 }),
@@ -144,17 +127,29 @@ function Deer({ index, brain, animate }: { index: number; brain: AnimalBrain; an
           {M(res.smooth, res.cream, [0, 0.8, 0], [0.19, 0.12, 0.42])}
           {M(res.mane, res.cream, [0, 1.0, 0.5], [0.19, 0.24, 0.17])}
           <mesh ref={tail} geometry={res.smooth} material={res.cream} position={[0, 1.08, -0.6]} scale={[0.07, 0.1, 0.06]} />
+          {/* Mảng lông trắng ở mông */}
+          {M(res.mane, res.cream, [0, 0.98, -0.52], [0.17, 0.17, 0.08])}
 
           {legPos.map((p, i) => (
             <group key={i} ref={(el) => (legs.current[i] = el)} position={p}>
-              {M(res.bodyGeo, res.furGrad, [0, -0.1, 0], [0.085, 0.2, 0.11])}
+              {/* Đùi to nối liền thân, khớp gối, túm lông cổ chân, móng */}
+              {M(res.bodyGeo, res.furGrad, [0, -0.08, 0], [0.105, 0.24, 0.13])}
               <mesh geometry={res.leg} material={res.shin} position={[0, -0.5, 0]} />
-              {M(res.smooth, res.hoof, [0, -0.78, 0.015], [0.05, 0.04, 0.06])}
+              {M(res.smooth, res.shin, [0, -0.3, 0.005], [0.05, 0.055, 0.055])}
+              {M(res.mane, res.cream, [0, -0.7, 0.01], [0.055, 0.05, 0.06])}
+              {M(res.smooth, res.hoof, [0, -0.78, 0.015], [0.052, 0.04, 0.065])}
             </group>
           ))}
 
           <group ref={neck} position={[0, 1.1, 0.46]}>
             {M(res.bodyGeo, res.furGrad, [0, 0.2, 0.06], [0.12, 0.28, 0.13], [0.35, 0, 0])}
+            {/* Vòng cổ Giáng sinh có chuông */}
+            <mesh material={res.collar} position={[0, 0.12, 0.03]} rotation={[Math.PI / 2 + 0.35, 0, 0]}>
+              <torusGeometry args={[0.125, 0.025, 8, 24]} />
+            </mesh>
+            <mesh material={res.bell} position={[0, 0.03, 0.16]}>
+              <sphereGeometry args={[0.04, 12, 10]} />
+            </mesh>
             <group ref={head} position={[0, 0.44, 0.16]}>
               {M(res.bodyGeo, res.furGrad, [0, 0, 0.06], [0.13, 0.135, 0.2])}
               {M(res.smooth, res.cream, [0, -0.045, 0.24], [0.085, 0.08, 0.12])}

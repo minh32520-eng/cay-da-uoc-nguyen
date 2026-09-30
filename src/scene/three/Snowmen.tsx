@@ -38,6 +38,7 @@ function Snowman({ spot, index, animate }: { spot: SnowmanSpot; index: number; a
       scarf: new THREE.MeshStandardMaterial({ color: spot.scarf, roughness: 0.9 }),
       hat: new THREE.MeshStandardMaterial({ color: spot.hat === 'top' ? '#1b1b1f' : spot.scarf, roughness: 0.7 }),
       white: new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 }),
+      cheek: new THREE.MeshStandardMaterial({ color: '#ff9aa8', roughness: 0.8, transparent: true, opacity: 0.7 }),
     }),
     [index, spot],
   );
@@ -65,6 +66,8 @@ function Snowman({ spot, index, animate }: { spot: SnowmanSpot; index: number; a
         <circleGeometry args={[0.62, 24]} />
         <meshBasicMaterial color="#1b2340" transparent opacity={0.22} depthWrite={false} />
       </mesh>
+      {/* Ụ tuyết quanh chân */}
+      <mesh geometry={res.ball} material={res.snow} position={[0, 0.02, 0]} scale={[0.75, 0.14, 0.75]} />
       {B(0.46, 0.55, 0.88)}
       {B(1.16, 0.4, 0.92)}
       {[1.32, 1.18, 1.04].map((y, i) => coal([0, y, 0.38 - Math.abs(y - 1.18) * 0.3], 0.035, i))}
@@ -75,7 +78,12 @@ function Snowman({ spot, index, animate }: { spot: SnowmanSpot; index: number; a
         {B(0, 0.28)}
         {coal([0.09, 0.07, 0.24], 0.03, 'el')}
         {coal([-0.09, 0.07, 0.24], 0.03, 'er')}
-        {[-2, -1, 0, 1, 2].map((k) => coal([k * 0.045, -0.09 + Math.abs(k) * 0.02, 0.25 - Math.abs(k) * 0.01], 0.017, `m${k}`))}
+        {[-3, -2, -1, 0, 1, 2, 3].map((k) => coal([k * 0.036, -0.105 + k * k * 0.006, 0.245 - Math.abs(k) * 0.012], 0.015, `m${k}`))}
+        {[1, -1].map((sd) => (
+          <mesh key={sd} material={res.cheek} position={[sd * 0.15, -0.03, 0.21]} scale={[0.05, 0.035, 0.02]}>
+            <sphereGeometry args={[1, 12, 8]} />
+          </mesh>
+        ))}
         <mesh material={res.carrot} position={[0, 0, 0.36]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.04, 0.26, 10]} />
         </mesh>

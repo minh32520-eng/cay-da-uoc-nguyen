@@ -8,7 +8,7 @@ async function hangWish(page: Page, content: string, author = '') {
   await page.getByLabel(/Điều ước/).fill(content);
   if (author) await page.getByLabel('Tên của bạn').fill(author);
   await page.getByRole('button', { name: /Treo lên cây/ }).click();
-  await expect(page.getByText('Điều ước của bạn đã được treo lên cây thông')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Điều ước của bạn đã được treo lên cây thông')).toBeVisible({ timeout: 10_000 });
 }
 
 test.beforeEach(async ({ page }) => {

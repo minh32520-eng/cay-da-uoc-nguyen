@@ -37,7 +37,7 @@
 | FR-001-06 | Event-driven | WHEN người dùng bấm nút "Về góc nhìn ban đầu", THE system SHALL đưa camera về vị trí mặc định trong 600 ms. |
 | FR-001-07 | Ubiquitous | THE system SHALL hiển thị tối thiểu 8 quả châu Giáng sinh phát sáng trên cây, đung đưa nhẹ theo chu kỳ 3–5 s, cùng một dây đèn nhấp nháy quấn quanh cây. |
 | FR-001-08 | State-driven | WHILE người dùng không tương tác quá 10 s, THE system SHALL tự xoay camera chậm 5°/s cho đến khi có tương tác mới. |
-| FR-001-09 | State-driven | WHILE `prefers-reduced-motion: reduce` được bật, THE system SHALL tắt tự xoay, tắt đung đưa quả châu, dừng tuyết rơi, cho tuần lộc đứng yên và thay mọi chuyển động camera bằng chuyển cảnh tức thì. |
+| FR-001-09 | State-driven | WHILE `prefers-reduced-motion: reduce` được bật, THE system SHALL tắt tự xoay, tắt đung đưa quả châu, dừng tuyết rơi, cho tuần lộc đứng yên, không cho xe trượt tuyết bay và thay mọi chuyển động camera bằng chuyển cảnh tức thì. |
 | FR-001-10 | Unwanted | IF trình duyệt không hỗ trợ WebGL, THEN THE system SHALL hiển thị chế độ 2D (ảnh SVG cây thông có tuyết với 100 slot tương ứng) thay cho cảnh 3D. |
 | FR-001-11 | Unwanted | IF model 3D tải thất bại, THEN THE system SHALL hiển thị thông báo lỗi kèm nút "Thử lại" và nút "Dùng chế độ 2D". |
 | FR-001-12 | Optional | WHERE người dùng bật nhạc nền, THE system SHALL phát nhạc Giáng sinh lặp lại với âm lượng mặc định 30%; mặc định nhạc TẮT. |
@@ -48,6 +48,8 @@
 | FR-001-17 | Ubiquitous | THE system SHALL hiển thị 3–4 người tuyết (3 khối tuyết, mũi cà rốt, mắt & cúc than, tay cành cây, khăn quàng, mũ) đứng quanh gốc cây. |
 | FR-001-18 | Unwanted | IF một con tuần lộc sắp chạm vật cản (đá, bụi, hộp quà, người tuyết, thân cây, tuần lộc khác), THEN THE system SHALL lái tuần lộc tránh sang hướng khác và không bao giờ để thân tuần lộc chồng lên vật cản. |
 | FR-001-19 | Ubiquitous | THE system SHALL đặt quả châu sao cho không quả nào che tờ giấy ước nguyện khi nhìn từ ngoài vào (không đồng thời chồng lấn theo cung tròn quanh thân, theo độ cao kể cả dây treo, và nằm phía trước tờ giấy; không chạm tờ giấy). |
+| FR-001-20 | State-driven | WHILE cảnh 3D đang chạy, THE system SHALL cho ông già Noel ngồi xe trượt tuyết do 4 tuần lộc kéo (con đầu mũi đỏ phát sáng) bay ngang bầu trời phía sau cây trong khoảng 8 s, xe lượn nhẹ, tuần lộc phi nước đại, để lại vệt bụi sao lấp lánh. |
+| FR-001-21 | Event-driven | WHEN một lượt bay kết thúc, THE system SHALL nghỉ một khoảng ngẫu nhiên 5–8 s rồi bắt đầu lượt bay mới, hướng bay đổi xen kẽ trái → phải và phải → trái. |
 
 ## 4. Non-Functional Requirements
 
@@ -63,6 +65,7 @@
 | NFR-001-08 | A11y | THE system SHALL đảm bảo tương phản ≥ 4.5:1 cho mọi chữ và nút phủ lên cảnh. |
 | NFR-001-09 | Hiệu năng | THE system SHALL vẽ toàn bộ tuyết bằng một draw call (`Points`), tối đa 3000 bông trên desktop và 1200 bông trên thiết bị màn hình < 768 px hoặc khi đang ở chế độ chất lượng thấp. |
 | NFR-001-10 | Kiểm thử | THE system SHALL tách logic di chuyển của tuần lộc thành hàm thuần (không phụ thuộc three.js) để mô phỏng và kiểm thử va chạm. |
+| NFR-001-11 | Kiểm thử | THE system SHALL tách lịch bay và quỹ đạo xe trượt tuyết thành hàm thuần để kiểm thử nhịp lặp và độ cao bay. |
 
 ## 5. Data Model
 
@@ -178,13 +181,16 @@ GROUND_OBSTACLES: readonly Obstacle[]
 | AC-001-17 | FR-001-18, NFR-001-10 | 5 tuần lộc | Mô phỏng 2 phút với bước 1/60 s | Không lần nào thân tuần lộc chồng lên vật cản; tuần lộc thực sự di chuyển ≥ 30% thời gian |
 | AC-001-18 | FR-001-19 | Bố cục cây thông | Gọi `ornamentCoversPaper` cho mọi cặp quả châu – slot | Không cặp nào trả về true; có ≥ 8 quả châu |
 | AC-001-19 | FR-001-02 | Bố cục cây thông | So mọi slot với mặt nón tầng lá bên dưới | Tâm tờ giấy nằm ngoài mặt nón tầng dưới (không bị lá che) |
+| AC-001-20 | FR-001-20, 21, NFR-001-11 | Lịch bay với seed cố định | Mô phỏng 5 phút | Mỗi lượt bay 8 s; mỗi khoảng nghỉ 5–8 s; hướng bay đổi xen kẽ |
+| AC-001-21 | FR-001-20 | Quỹ đạo bay | Lấy mẫu toàn lượt | Xe luôn cao hơn ngôi sao trên đỉnh cây ≥ 2 đơn vị, nằm phía sau cây, đi từ mép này sang mép kia |
+| AC-001-22 | FR-001-09 | Bật reduced-motion | Mô phỏng 30 s | Xe trượt tuyết không bay |
 
 ## 9. Out of Scope
 
 - Chế độ ngày/đêm theo giờ thực, tuyết đọng tích luỹ theo thời gian.
 - Nhiều loại cây hoặc tuỳ biến hình dáng cây.
 - VR/AR, WebXR.
-- Ông già Noel, xe trượt tuyết bay trên trời.
+- Ông già Noel trong chế độ 2D (chỉ có ở cảnh 3D theo lựa chọn của người dùng).
 - Người dùng tự thêm slot treo mới.
 - Tương tác trực tiếp với tuần lộc / người tuyết (bấm, kéo).
 
@@ -196,3 +202,4 @@ GROUND_OBSTACLES: readonly Obstacle[]
 |---|---|
 | 2026-09-25 | Bản đầu: cây đa đêm Trung Thu, đèn lồng, thỏ ngọc. |
 | 2026-09-30 | Theo yêu cầu người dùng: chuyển sang cây thông Giáng sinh. Sửa nội dung FR-001-01, 07, 09, 10, 12, 13; NFR-001-02; ERR-001-02, 05; AC-001-01, 07, 08, 09. Thêm FR-001-15..19, NFR-001-09..10, ERR-001-06, AC-001-14..19. Thỏ ngọc được thay bằng tuần lộc; thêm người tuyết và tuyết rơi. Tiêu chí FR-001-19/AC-001-18 đổi từ "cách ≥ 1.0" sang "không che khi nhìn từ ngoài" vì mép tầng lá dày đặc chỗ treo. |
+| 2026-10-01 | Theo yêu cầu người dùng: thêm ông già Noel cưỡi xe tuần lộc bay ngang trời, nghỉ 5–8 s rồi lặp lại (FR-001-20, 21; NFR-001-11; AC-001-20..22), chỉ ở cảnh 3D. |

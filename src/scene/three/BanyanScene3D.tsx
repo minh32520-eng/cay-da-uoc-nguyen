@@ -8,6 +8,7 @@ import type { SceneProps } from '../sceneProps';
 import { CameraRig, DEFAULT_CAMERA } from './CameraRig';
 import { GarlandLights, Ground, Ornaments, Sky, Snowfall, TreeStar } from './Environment';
 import { Reindeer } from './Reindeer';
+import { SantaSleigh } from './SantaSleigh';
 import { Snowmen } from './Snowmen';
 import { SlotMarkers } from './SlotMarkers';
 import { Tree } from './Tree';
@@ -62,6 +63,7 @@ export default function BanyanScene3D(props: SceneProps) {
       <TreeStar animate={!props.reducedMotion} />
       <Reindeer animate={!props.reducedMotion} />
       <Snowmen animate={!props.reducedMotion} />
+      <SantaSleigh animate={!props.reducedMotion} />
       <Snowfall animate={!props.reducedMotion} lowQuality={lowQuality} />
       <WishPapers
         wishes={props.wishes}
