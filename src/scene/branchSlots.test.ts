@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BRANCH_SLOTS, getSlotById } from './branchSlots';
-import { LANTERN_CLEARANCE, lanternCenter, paperCenter, TREE_LAYOUT } from './treeLayout';
+import { coneSurfaceY, ornamentCoversPaper, PAPER_HEIGHT, paperCenter, TREE_LAYOUT } from './treeLayout';
 
-describe('BRANCH_SLOTS (001)', () => {
+describe('BRANCH_SLOTS — cây thông (001)', () => {
   it('AC-001-02: có đúng 100 slot, ID không trùng', () => {
     expect(BRANCH_SLOTS).toHaveLength(100);
     expect(new Set(BRANCH_SLOTS.map((s) => s.id)).size).toBe(100);
@@ -23,18 +23,37 @@ describe('BRANCH_SLOTS (001)', () => {
     expect(maxLow).toBeLessThanOrEqual(minHigh);
   });
 
-  it('đèn lồng không che chỗ treo tờ ước nguyện', () => {
-    expect(TREE_LAYOUT.lanterns.length).toBeGreaterThanOrEqual(8); // FR-001-07
-    for (const l of TREE_LAYOUT.lanterns) {
-      const c = lanternCenter(l);
-      for (const s of BRANCH_SLOTS) {
-        const p = paperCenter(s);
-        expect(Math.hypot(c[0] - p[0], c[1] - p[1], c[2] - p[2])).toBeGreaterThanOrEqual(LANTERN_CLEARANCE);
+  it('FR-001-01: cây thông có nhiều tầng lá thu nhỏ dần lên đỉnh', () => {
+    const { layers } = TREE_LAYOUT;
+    expect(layers.length).toBeGreaterThanOrEqual(5);
+    for (let i = 1; i < layers.length; i++) {
+      expect(layers[i]!.y).toBeGreaterThan(layers[i - 1]!.y);
+      expect(layers[i]!.radius).toBeLessThan(layers[i - 1]!.radius);
+    }
+    expect(TREE_LAYOUT.starY).toBeGreaterThan(layers.at(-1)!.y);
+  });
+
+  it('AC-001-19: tờ giấy treo ngoài mặt nón tầng lá bên dưới (không bị lá che)', () => {
+    for (const s of BRANCH_SLOTS) {
+      const [x, , z] = s.position;
+      const r = Math.hypot(x, z);
+      const bottom = paperCenter(s)[1] - PAPER_HEIGHT / 2;
+      for (const layer of TREE_LAYOUT.layers) {
+        const surface = coneSurfaceY(layer, r);
+        // Nếu tầng lá này có mặt nón tại bán kính đó, đáy tờ giấy phải cao hơn mặt nón
+        if (surface !== null && layer.y < s.position[1]) expect(bottom).toBeGreaterThan(surface);
       }
     }
   });
 
-  it('bố cục ổn định giữa các lần chạy (seed cố định)', () => {
-    expect(BRANCH_SLOTS[0]?.position.map((v) => Number(v.toFixed(3)))).toMatchSnapshot();
+  it('AC-001-18: quả châu không che chỗ treo tờ ước nguyện', () => {
+    expect(TREE_LAYOUT.ornaments.length).toBeGreaterThanOrEqual(8); // FR-001-07
+    for (const o of TREE_LAYOUT.ornaments) {
+      for (const s of BRANCH_SLOTS) expect(ornamentCoversPaper(o, s)).toBe(false);
+    }
+  });
+
+  it('FR-001-07: có dây đèn quấn quanh cây', () => {
+    expect(TREE_LAYOUT.lights.length).toBeGreaterThanOrEqual(60);
   });
 });

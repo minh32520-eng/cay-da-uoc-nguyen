@@ -5,13 +5,13 @@ import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { getSlotById } from '../branchSlots';
 import { useSceneStore } from '../sceneStore';
-import { PAPER_HANG_LENGTH } from '../treeLayout';
-import { RABBIT_HERD } from './Rabbits';
+import { PAPER_HANG_LENGTH, PAPER_HEIGHT } from '../treeLayout';
+import { REINDEER_HERD } from './Reindeer';
 
-const RABBIT_CAM = import.meta.env.DEV && typeof location !== 'undefined' && location.search.includes('rabbitcam');
+const ANIMAL_CAM = import.meta.env.DEV && typeof location !== 'undefined' && location.search.includes('animalcam');
 
-export const DEFAULT_CAMERA = new THREE.Vector3(0, 5.2, 13);
-export const DEFAULT_TARGET = new THREE.Vector3(0, 3.2, 0);
+export const DEFAULT_CAMERA = new THREE.Vector3(0, 5.6, 15.5);
+export const DEFAULT_TARGET = new THREE.Vector3(0, 4.2, 0);
 export const MIN_DISTANCE = 4;
 export const MAX_DISTANCE = 20;
 const DEG = Math.PI / 180;
@@ -36,7 +36,7 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height));
   // Màn hình dọc (điện thoại) cần lùi camera để thấy trọn tán cây
   const defaultPos = useMemo(() => {
-    const d = aspect < 1 ? THREE.MathUtils.clamp(13 / aspect ** 0.7, 13, MAX_DISTANCE - 1) : 13;
+    const d = aspect < 1 ? THREE.MathUtils.clamp(15.5 / aspect ** 0.6, 15.5, MAX_DISTANCE - 0.5) : 15.5;
     return DEFAULT_TARGET.clone().add(DEFAULT_CAMERA.clone().sub(DEFAULT_TARGET).setLength(d));
   }, [aspect]);
 
@@ -90,7 +90,7 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
         const slot = getSlotById(command.slotId);
         if (!slot) break;
         const [x, y, z] = slot.position;
-        const target = new THREE.Vector3(x, y - PAPER_HANG_LENGTH - 0.15, z);
+        const target = new THREE.Vector3(x, y - PAPER_HANG_LENGTH - PAPER_HEIGHT / 2, z);
         const out = new THREE.Vector3(x, 0, z).normalize();
         if (out.lengthSq() === 0) out.set(0, 0, 1);
         // Lùi ra ngoài tán lá để không bị cành che
@@ -105,12 +105,12 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
   useFrame((_, delta) => {
     const c = controls.current;
     if (!c) return;
-    // Chỉ khi dev: ?rabbitcam bám theo một con thỏ để soi model
-    if (RABBIT_CAM) {
-      const r = RABBIT_HERD[Number(new URLSearchParams(location.search).get('rabbitcam')) || 0];
+    // Chỉ khi dev: ?animalcam=N bám theo tuần lộc N để soi model
+    if (ANIMAL_CAM) {
+      const r = REINDEER_HERD[Number(new URLSearchParams(location.search).get('animalcam')) || 0];
       if (r) {
-        c.target.set(r.x, 0.22, r.z);
-        camera.position.set(r.x + Math.sin(r.heading + 1.2) * 1.1, 0.45, r.z + Math.cos(r.heading + 1.2) * 1.1);
+        c.target.set(r.x, 0.9, r.z);
+        camera.position.set(r.x + Math.sin(r.heading + 1.2) * 3, 1.5, r.z + Math.cos(r.heading + 1.2) * 3);
         camera.lookAt(c.target);
         return;
       }

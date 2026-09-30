@@ -93,6 +93,18 @@ html, body, #root {
   50% { transform: rotate(4deg); }
 }
 
+/* Tuyết rơi ở chế độ 2D */
+.snow-fall {
+  animation-name: snow-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes snow-fall {
+  from { transform: translate(0, 0); }
+  50% { transform: translate(12px, 310px); }
+  to { transform: translate(-6px, 620px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 1ms !important;

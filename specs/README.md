@@ -1,10 +1,10 @@
-# Danh mục Feature — Cây Đa Ước Nguyện Trung Thu
+# Danh mục Feature — Cây Thông Ước Nguyện (Giáng sinh)
 
 Ứng dụng React chỉ chạy phía client (không backend). Mọi spec tuân theo [Constitution](../.specify/memory/constitution.md) và [AGENTS.md](../AGENTS.md).
 
 | ID | Feature | Mô tả ngắn | Phụ thuộc | Ưu tiên | Trạng thái |
 |---|---|---|---|---|---|
-| [001](001-banyan-tree-scene/spec.md) | Cảnh cây đa 3D | Hiển thị model cây đa đêm Trung Thu, trăng, đèn lồng, điều khiển camera, dự phòng 2D | — | P1 | Draft |
+| [001](001-banyan-tree-scene/spec.md) | Cảnh cây thông 3D | Cây thông phủ tuyết, quả châu, dây đèn, ngôi sao, tuyết rơi, tuần lộc, người tuyết, điều khiển camera, dự phòng 2D | — | P1 | Approved |
 | [002](002-write-wish/spec.md) | Viết tờ ước nguyện | Form soạn ước nguyện: nội dung, tên, chủ đề, màu giấy, xem trước | 001 | P1 | Draft |
 | [003](003-hang-wish/spec.md) | Treo ước nguyện lên cây | Gán slot trên cành, animation bay lên treo, lưu localStorage | 001, 002 | P1 | Draft |
 | [004](004-view-browse-wish/spec.md) | Xem & duyệt ước nguyện | Click tờ giấy để đọc, danh sách truy cập được, tìm kiếm & lọc | 003 | P1 | Draft |
@@ -18,7 +18,7 @@ Thực thể `Wish` được định nghĩa **một lần** trong [002-write-wis
 ## Luồng người dùng tổng thể
 
 ```
-Mở web → (001) thấy cây đa đêm trăng
+Mở web → (001) thấy cây thông Giáng sinh giữa trời tuyết
        → (002) bấm "Viết điều ước" → soạn nội dung
        → (003) bấm "Treo lên cây" → tờ giấy bay lên cành
        → (004) click tờ giấy bất kỳ để đọc / mở danh sách tìm kiếm

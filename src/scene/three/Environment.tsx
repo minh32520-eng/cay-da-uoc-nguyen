@@ -1,13 +1,17 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { mulberry32 } from '@/shared/lib/random';
 import { GROUND_LAYOUT, type Placed } from '../groundLayout';
-import { LANTERN_BODY_OFFSET, TREE_LAYOUT, type LanternAnchor } from '../treeLayout';
-import { cloudTexture, glowTexture, leafTexture, moonTexture } from './textures';
+import { snowflakeCount } from '../snow';
+import { TREE_LAYOUT } from '../treeLayout';
+import { cloudTexture, glowTexture, moonTexture, snowflakeTexture } from './textures';
 
-export const MOON_POSITION: [number, number, number] = [-20, 17, -45];
+export const MOON_POSITION: [number, number, number] = [-30, 13, -46];
+const SNOW_WHITE = new THREE.Color('#f3f7ff');
+
+/* ---------------- Bầu trời đêm mùa đông ---------------- */
 
 export function Sky({ animate }: { animate: boolean }) {
   const clouds = useRef<THREE.Group>(null);
@@ -17,117 +21,77 @@ export function Sky({ animate }: { animate: boolean }) {
 
   return (
     <>
-      <color attach="background" args={['#060a1d']} />
-      <fog attach="fog" args={['#0a1030', 24, 75]} />
-      <Stars radius={90} depth={40} count={3000} factor={3.2} saturation={0.2} fade speed={animate ? 0.5 : 0} />
-
-      {/* Trăng rằm */}
+      <color attach="background" args={['#0a1128']} />
+      <fog attach="fog" args={['#1a2446', 22, 70]} />
+      <Stars radius={90} depth={40} count={2500} factor={3} saturation={0.1} fade speed={animate ? 0.5 : 0} />
       <mesh position={MOON_POSITION}>
-        <sphereGeometry args={[4.6, 64, 64]} />
-        <meshBasicMaterial map={moonTexture()} fog={false} toneMapped={false} />
+        <sphereGeometry args={[4, 48, 48]} />
+        <meshBasicMaterial map={moonTexture()} color="#eef3ff" fog={false} toneMapped={false} />
       </mesh>
-      <sprite position={MOON_POSITION} scale={[26, 26, 1]}>
-        <spriteMaterial map={glowTexture()} color="#ffe6a0" transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
-      </sprite>
-      <sprite position={MOON_POSITION} scale={[60, 60, 1]}>
-        <spriteMaterial map={glowTexture()} color="#8aa0ff" transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
+      <sprite position={MOON_POSITION} scale={[24, 24, 1]}>
+        <spriteMaterial map={glowTexture()} color="#cfdcff" transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
       </sprite>
       <group ref={clouds}>
         {[
-          [-26, 12, -40, 22],
-          [-12, 20, -48, 18],
-          [4, 15, -55, 26],
+          [-28, 14, -42, 24],
+          [-10, 22, -50, 20],
+          [8, 16, -56, 28],
         ].map(([x, y, z, s], i) => (
           <sprite key={i} position={[x!, y!, z!]} scale={[s!, s! * 0.35, 1]}>
-            <spriteMaterial map={cloudTexture()} color="#b9c3ef" transparent opacity={0.28} depthWrite={false} fog={false} />
+            <spriteMaterial map={cloudTexture()} color="#c3cde8" transparent opacity={0.3} depthWrite={false} fog={false} />
           </sprite>
         ))}
       </group>
 
-      <ambientLight intensity={0.55} color="#8e9cf0" />
-      <hemisphereLight args={['#9fb0ff', '#2a3a1c', 0.9]} />
-      <directionalLight position={MOON_POSITION} intensity={2.2} color="#f1f3ff" />
-      <pointLight position={[2.2, 2.4, 2.2]} intensity={9} distance={11} decay={1.6} color="#ffa24d" />
-      <pointLight position={[-2.4, 2.6, -2]} intensity={7} distance={11} decay={1.6} color="#ff8a3d" />
-      <pointLight position={[0.5, 1.2, -2.6]} intensity={4} distance={8} decay={1.6} color="#ffcf7a" />
+      <ambientLight intensity={0.65} color="#9fb3ff" />
+      <hemisphereLight args={['#b6c6ff', '#e8eefc', 0.8]} />
+      <directionalLight position={MOON_POSITION} intensity={1.9} color="#e6ecff" />
+      {/* Ánh ấm từ dây đèn trên cây */}
+      <pointLight position={[2.4, 2.4, 2.4]} intensity={6} distance={10} decay={1.6} color="#ffc27a" />
+      <pointLight position={[-2.4, 4, -1.8]} intensity={5} distance={10} decay={1.6} color="#ffb070" />
+      <pointLight position={[0, 9.4, 0.5]} intensity={5} distance={8} decay={1.6} color="#ffe08a" />
     </>
   );
 }
 
+/* ---------------- Mặt đất tuyết ---------------- */
+
 export function Ground() {
   const geo = useMemo(() => {
-    const g = new THREE.CircleGeometry(48, 96, 0, Math.PI * 2);
+    const g = new THREE.CircleGeometry(50, 110);
     const pos = g.getAttribute('position') as THREE.BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
-    const dirt = new THREE.Color('#3a2c1d');
-    const grass = new THREE.Color('#1f3a22');
-    const far = new THREE.Color('#0b1420');
+    const near = new THREE.Color('#f4f7fd');
+    const mid = new THREE.Color('#d7e1f3');
+    const farC = new THREE.Color('#5d6b93');
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
-      const r = Math.hypot(pos.getX(i), pos.getY(i));
-      c.copy(dirt).lerp(grass, THREE.MathUtils.smoothstep(r, 1.5, 5)).lerp(far, THREE.MathUtils.smoothstep(r, 14, 40));
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const r = Math.hypot(x, y);
+      // Mặt tuyết gợn nhẹ
+      pos.setZ(i, (Math.sin(x * 0.7) * Math.cos(y * 0.6) * 0.08 + Math.sin(x * 2.3 + y * 1.7) * 0.03) * Math.min(1, r / 4));
+      c.copy(near).lerp(mid, THREE.MathUtils.smoothstep(r, 4, 16)).lerp(farC, THREE.MathUtils.smoothstep(r, 18, 45));
       colors.set([c.r, c.g, c.b], i * 3);
     }
     g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    g.computeVertexNormals();
     return g;
   }, []);
 
   return (
     <>
       <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
-        <meshStandardMaterial vertexColors roughness={1} />
+        <meshStandardMaterial vertexColors roughness={0.85} emissive="#223055" emissiveIntensity={0.25} />
       </mesh>
-      <Grass />
       <GroundDecor />
     </>
   );
 }
 
-function Grass() {
+/** Một InstancedMesh cho danh sách vật thể đặt sẵn. */
+function PlacedInstances({ items, color, children }: { items: readonly Placed[]; color?: THREE.Color; children: ReactNode }) {
   const ref = useRef<THREE.InstancedMesh>(null);
-  const COUNT = 5200;
-  const geo = useMemo(() => {
-    const g = new THREE.ConeGeometry(0.035, 0.34, 3, 1, true);
-    g.translate(0, 0.17, 0);
-    return g;
-  }, []);
-
-  useLayoutEffect(() => {
-    const mesh = ref.current;
-    if (!mesh) return;
-    const rnd = mulberry32(3);
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const e = new THREE.Euler();
-    const c = new THREE.Color();
-    // Cỏ mọc thành từng khóm
-    const clumps = Array.from({ length: 180 }, () => ({ a: rnd() * Math.PI * 2, r: 1.6 + Math.pow(rnd(), 1.4) * 15 }));
-    for (let i = 0; i < COUNT; i++) {
-      const clump = clumps[i % clumps.length]!;
-      const spread = 0.25 + clump.r * 0.04;
-      const a = clump.a + ((rnd() - 0.5) * spread) / clump.r;
-      const r = Math.max(1.3, clump.r + (rnd() - 0.5) * spread * 2);
-      e.set((rnd() - 0.5) * 0.5, rnd() * Math.PI, (rnd() - 0.5) * 0.5);
-      q.setFromEuler(e);
-      const s = 0.6 + rnd() * 0.9;
-      m.compose(new THREE.Vector3(Math.cos(a) * r, -0.05, Math.sin(a) * r), q, new THREE.Vector3(s, s * (0.7 + rnd() * 0.8), s));
-      mesh.setMatrixAt(i, m);
-      mesh.setColorAt(i, c.setHSL(0.26 + rnd() * 0.06, 0.45, 0.14 + rnd() * 0.12));
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, []);
-
-  return (
-    <instancedMesh ref={ref} args={[geo, undefined, COUNT]}>
-      <meshStandardMaterial roughness={1} side={THREE.DoubleSide} />
-    </instancedMesh>
-  );
-}
-
-/* ---------------- Trang trí mặt đất ---------------- */
-
-function useInstances(ref: React.RefObject<THREE.InstancedMesh | null>, items: readonly Placed[]) {
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
@@ -136,65 +100,144 @@ function useInstances(ref: React.RefObject<THREE.InstancedMesh | null>, items: r
     items.forEach((it, i) => {
       m.compose(it.position, q.setFromEuler(it.rotation), it.scale);
       mesh.setMatrixAt(i, m);
-      mesh.setColorAt(i, it.color);
+      mesh.setColorAt(i, color ?? it.color);
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [ref, items]);
+  }, [items, color]);
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, items.length]}>
+      {children}
+    </instancedMesh>
+  );
 }
 
-/** Bụi cây, đá, hoa dại, lá đa rụng — bố cục lấy từ GROUND_LAYOUT (chung với vật cản của thỏ). */
+/** Đá phủ tuyết, rừng thông nhỏ, đụn tuyết, hộp quà. */
 function GroundDecor() {
-  const bushRef = useRef<THREE.InstancedMesh>(null);
-  const rockRef = useRef<THREE.InstancedMesh>(null);
-  const flowerRef = useRef<THREE.InstancedMesh>(null);
-  const leafRef = useRef<THREE.InstancedMesh>(null);
-  const { bushes, rocks, flowers, fallen } = GROUND_LAYOUT;
+  const { rocks, pines, drifts } = GROUND_LAYOUT;
 
-  useInstances(bushRef, bushes);
-  useInstances(rockRef, rocks);
-  useInstances(flowerRef, flowers);
-  useInstances(leafRef, fallen);
+  const caps = useMemo<Placed[]>(
+    () =>
+      rocks.map((r) => ({
+        position: r.position.clone().add(new THREE.Vector3(0, r.scale.y * 0.55, 0)),
+        scale: new THREE.Vector3(r.scale.x * 0.85, r.scale.y * 0.4, r.scale.z * 0.85),
+        rotation: r.rotation,
+        color: SNOW_WHITE,
+      })),
+    [rocks],
+  );
+
+  // Cây thông nhỏ = 3 tầng nón; tuyết là nón trắng nhỏ hơn đặt trên mỗi tầng
+  const tiers = useMemo(
+    () =>
+      [0, 1, 2].map((t) => ({
+        body: pines.map<Placed>((p) => ({
+          position: p.position.clone().add(new THREE.Vector3(0, p.scale.y * (0.55 + t * 0.55), 0)),
+          scale: new THREE.Vector3(p.scale.x * (0.9 - t * 0.22), p.scale.y * (1.1 - t * 0.15), p.scale.z * (0.9 - t * 0.22)),
+          rotation: p.rotation,
+          color: p.color,
+        })),
+        snow: pines.map<Placed>((p) => ({
+          position: p.position.clone().add(new THREE.Vector3(0, p.scale.y * (0.83 + t * 0.52), 0)),
+          scale: new THREE.Vector3(p.scale.x * (0.52 - t * 0.12), p.scale.y * (0.55 - t * 0.08), p.scale.z * (0.52 - t * 0.12)),
+          rotation: p.rotation,
+          color: SNOW_WHITE,
+        })),
+      })),
+    [pines],
+  );
 
   return (
     <group>
-      <instancedMesh ref={bushRef} args={[undefined, undefined, bushes.length]}>
-        <icosahedronGeometry args={[1, 1]} />
-        <meshStandardMaterial roughness={0.9} flatShading />
-      </instancedMesh>
-      <instancedMesh ref={rockRef} args={[undefined, undefined, rocks.length]}>
+      <PlacedInstances items={rocks}>
         <dodecahedronGeometry args={[1, 0]} />
         <meshStandardMaterial roughness={0.95} flatShading />
-      </instancedMesh>
-      <instancedMesh ref={flowerRef} args={[undefined, undefined, flowers.length]}>
-        <icosahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial roughness={0.6} emissive="#3a2a10" emissiveIntensity={0.4} />
-      </instancedMesh>
-      <instancedMesh ref={leafRef} args={[undefined, undefined, fallen.length]}>
-        <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial map={leafTexture()} alphaTest={0.5} side={THREE.DoubleSide} roughness={1} />
-      </instancedMesh>
-      <GroundLanterns />
+      </PlacedInstances>
+      <PlacedInstances items={caps}>
+        <sphereGeometry args={[1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial roughness={0.8} />
+      </PlacedInstances>
+      <PlacedInstances items={drifts}>
+        <sphereGeometry args={[1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial roughness={0.85} emissive="#223055" emissiveIntensity={0.2} />
+      </PlacedInstances>
+      {tiers.map((t, i) => (
+        <group key={i}>
+          <PlacedInstances items={t.body}>
+            <coneGeometry args={[0.6, 1.1, 9]} />
+            <meshStandardMaterial roughness={0.9} flatShading />
+          </PlacedInstances>
+          <PlacedInstances items={t.snow}>
+            <coneGeometry args={[0.6, 0.6, 9]} />
+            <meshStandardMaterial roughness={0.8} flatShading />
+          </PlacedInstances>
+        </group>
+      ))}
+      <Gifts />
     </group>
   );
 }
 
-/** Đèn giấy đặt dưới đất quanh gốc cây. */
-function GroundLanterns() {
+function Gifts() {
   return (
     <>
-      {GROUND_LAYOUT.lanterns.map((l, i) => (
-        <group key={i} position={[l.x, 0, l.z]} scale={l.s}>
-          <mesh position={[0, 0.14, 0]}>
-            <cylinderGeometry args={[0.1, 0.12, 0.28, 8, 1, true]} />
-            <meshStandardMaterial color={l.color} emissive={l.color} emissiveIntensity={1.4} side={THREE.DoubleSide} transparent opacity={0.92} />
+      {GROUND_LAYOUT.gifts.map((g, i) => {
+        const [w, h, d] = g.size;
+        return (
+          <group key={i} position={[g.x, h / 2 - 0.03, g.z]} rotation={[0, g.rotationY, 0]}>
+            <mesh>
+              <boxGeometry args={[w, h, d]} />
+              <meshStandardMaterial color={g.box} roughness={0.6} />
+            </mesh>
+            <mesh>
+              <boxGeometry args={[w * 0.18, h + 0.01, d + 0.01]} />
+              <meshStandardMaterial color={g.ribbon} roughness={0.4} metalness={0.3} />
+            </mesh>
+            <mesh>
+              <boxGeometry args={[w + 0.01, h + 0.01, d * 0.18]} />
+              <meshStandardMaterial color={g.ribbon} roughness={0.4} metalness={0.3} />
+            </mesh>
+            {[-1, 1].map((s) => (
+              <mesh key={s} position={[s * w * 0.12, h / 2 + 0.05, 0]} rotation={[0, 0, s * 0.6]} scale={[1, 0.6, 0.45]}>
+                <torusGeometry args={[0.07, 0.022, 8, 16]} />
+                <meshStandardMaterial color={g.ribbon} roughness={0.4} metalness={0.3} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+/* ---------------- Trang trí trên cây ---------------- */
+
+/** Quả châu phát sáng, lắc nhẹ chu kỳ 3–5 s (FR-001-07); đặt không che chỗ treo (FR-001-19). */
+export function Ornaments({ animate }: { animate: boolean }) {
+  const refs = useRef<(THREE.Group | null)[]>([]);
+  useFrame(({ clock }) => {
+    if (!animate) return;
+    const t = clock.getElapsedTime();
+    TREE_LAYOUT.ornaments.forEach((_, i) => {
+      const g = refs.current[i];
+      const period = 3 + (i % 3);
+      if (g) g.rotation.z = Math.sin((t / period) * Math.PI * 2 + i * 1.37) * 0.12;
+    });
+  });
+  return (
+    <>
+      {TREE_LAYOUT.ornaments.map((o, i) => (
+        <group key={i} position={o.position} ref={(el) => (refs.current[i] = el)}>
+          <mesh position={[0, o.size + 0.01, 0]}>
+            <cylinderGeometry args={[0.03, 0.035, 0.05, 10]} />
+            <meshStandardMaterial color="#d8b24a" metalness={0.8} roughness={0.3} />
           </mesh>
-          <mesh position={[0, 0.29, 0]}>
-            <cylinderGeometry args={[0.105, 0.105, 0.02, 8]} />
-            <meshStandardMaterial color="#3a2412" />
+          <mesh>
+            <sphereGeometry args={[o.size, 24, 16]} />
+            <meshStandardMaterial color={o.color} emissive={o.color} emissiveIntensity={0.55} metalness={0.55} roughness={0.2} />
           </mesh>
-          <sprite position={[0, 0.16, 0]} scale={[0.9, 0.9, 1]}>
-            <spriteMaterial map={glowTexture()} color={l.color} transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <sprite scale={[o.size * 6, o.size * 6, 1]}>
+            <spriteMaterial map={glowTexture()} color={o.color} transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} />
           </sprite>
         </group>
       ))}
@@ -202,150 +245,125 @@ function GroundLanterns() {
   );
 }
 
-/* ---------------- Đèn lồng ---------------- */
+/** Dây đèn nhấp nháy dọc mép các tầng lá (FR-001-07). */
+export function GarlandLights({ animate }: { animate: boolean }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const { lights, lightColors } = TREE_LAYOUT;
+  const base = useMemo(() => lightColors.map((c) => new THREE.Color(c)), [lightColors]);
+  const phases = useMemo(() => {
+    const rnd = mulberry32(5);
+    return lights.map(() => rnd() * Math.PI * 2);
+  }, [lights]);
 
-const LANTERN_PALETTE = [
-  { body: '#e8322f', glow: '#ff7a45' },
-  { body: '#f59e1b', glow: '#ffc36b' },
-  { body: '#d9254f', glow: '#ff7a8f' },
-  { body: '#ef4a23', glow: '#ff9150' },
-];
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const m = new THREE.Matrix4();
+    lights.forEach((p, i) => {
+      mesh.setMatrixAt(i, m.makeTranslation(p[0], p[1], p[2]));
+      mesh.setColorAt(i, base[i]!.clone().multiplyScalar(1.5));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [lights, base]);
 
-function useRoundLanternGeometry() {
-  return useMemo(() => {
-    // Mặt cắt quả đèn: phình giữa, thắt hai đầu → tiện tròn 12 múi
-    const pts: THREE.Vector2[] = [];
-    for (let i = 0; i <= 16; i++) {
-      const t = i / 16;
-      const y = (t - 0.5) * 0.6;
-      pts.push(new THREE.Vector2(0.06 + Math.pow(Math.sin(Math.PI * t), 0.75) * 0.22, y));
+  const tmp = useMemo(() => new THREE.Color(), []);
+  useFrame(({ clock }) => {
+    const mesh = ref.current;
+    if (!mesh || !animate) return;
+    const t = clock.getElapsedTime();
+    for (let i = 0; i < lights.length; i++) {
+      const k = 0.55 + 0.45 * Math.max(0, Math.sin(t * 2.2 + phases[i]!));
+      mesh.setColorAt(i, tmp.copy(base[i]!).multiplyScalar(k * 1.8));
     }
-    return new THREE.LatheGeometry(pts, 12);
-  }, []);
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, lights.length]} frustumCulled={false}>
+      <sphereGeometry args={[0.045, 8, 6]} />
+      <meshBasicMaterial toneMapped={false} />
+    </instancedMesh>
+  );
 }
 
-function useStarGeometry() {
-  return useMemo(() => {
+/** Ngôi sao vàng trên đỉnh cây. */
+export function TreeStar({ animate }: { animate: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  const geo = useMemo(() => {
     const shape = new THREE.Shape();
     for (let i = 0; i < 10; i++) {
-      const r = i % 2 === 0 ? 0.36 : 0.15;
+      const r = i % 2 === 0 ? 0.42 : 0.18;
       const a = Math.PI / 2 + (i * Math.PI) / 5;
-      const x = Math.cos(a) * r;
-      const y = Math.sin(a) * r;
-      if (i === 0) shape.moveTo(x, y);
-      else shape.lineTo(x, y);
+      if (i === 0) shape.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      else shape.lineTo(Math.cos(a) * r, Math.sin(a) * r);
     }
     shape.closePath();
-    const g = new THREE.ExtrudeGeometry(shape, { depth: 0.07, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.02, bevelSegments: 2 });
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.03, bevelSegments: 2 });
     g.center();
     return g;
   }, []);
-}
-
-function Lantern({ data, index, animate, round, star }: { data: LanternAnchor; index: number; animate: boolean; round: THREE.BufferGeometry; star: THREE.BufferGeometry }) {
-  const ref = useRef<THREE.Group>(null);
-  const body = useRef<THREE.Mesh>(null);
-  const palette = data.kind === 'star' ? { body: '#ffc93c', glow: '#ffe08a' } : LANTERN_PALETTE[index % LANTERN_PALETTE.length]!;
-  const period = 3 + (index % 3); // chu kỳ 3–5 s (FR-001-07)
-  const phase = index * 1.37;
-
   useFrame(({ clock }) => {
-    if (!animate) return;
-    const t = clock.getElapsedTime();
-    if (ref.current) {
-      ref.current.rotation.z = Math.sin((t / period) * Math.PI * 2 + phase) * 0.1;
-      ref.current.rotation.x = Math.cos((t / period) * Math.PI * 2 + phase) * 0.05;
-    }
-    if (data.kind === 'star' && body.current) body.current.rotation.y = t * 0.4 + phase;
+    if (animate && ref.current) ref.current.rotation.y = clock.getElapsedTime() * 0.5;
   });
-
-  const y = -data.drop - LANTERN_BODY_OFFSET;
   return (
-    <group ref={ref} position={data.anchor}>
-      <mesh position={[0, -data.drop / 2, 0]}>
-        <cylinderGeometry args={[0.006, 0.006, data.drop, 4]} />
-        <meshBasicMaterial color="#2b1a0e" />
-      </mesh>
-      {data.kind === 'round' ? (
-        <group position={[0, y, 0]}>
-          <mesh geometry={round}>
-            <meshStandardMaterial color={palette.body} emissive={palette.body} emissiveIntensity={1.35} roughness={0.55} flatShading side={THREE.DoubleSide} />
-          </mesh>
-          {[0.31, -0.31].map((cy) => (
-            <mesh key={cy} position={[0, cy, 0]}>
-              <cylinderGeometry args={[0.085, 0.095, 0.045, 16]} />
-              <meshStandardMaterial color="#d6a23a" metalness={0.7} roughness={0.35} />
-            </mesh>
-          ))}
-          {/* Tua rua */}
-          <mesh position={[0, -0.47, 0]}>
-            <cylinderGeometry args={[0.012, 0.045, 0.28, 8]} />
-            <meshStandardMaterial color="#b3141c" emissive="#6d0a10" />
-          </mesh>
-        </group>
-      ) : (
-        <group position={[0, y, 0]}>
-          <mesh ref={body} geometry={star}>
-            <meshStandardMaterial color={palette.body} emissive="#ffb321" emissiveIntensity={1.2} roughness={0.5} />
-          </mesh>
-          <mesh position={[0, -0.38, 0]}>
-            <cylinderGeometry args={[0.01, 0.035, 0.22, 8]} />
-            <meshStandardMaterial color="#c81e24" />
-          </mesh>
-        </group>
-      )}
-      <sprite position={[0, y, 0]} scale={[1.5, 1.5, 1]}>
-        <spriteMaterial map={glowTexture()} color={palette.glow} transparent opacity={0.6} depthWrite={false} blending={THREE.AdditiveBlending} />
+    <group position={[0, TREE_LAYOUT.starY, 0]}>
+      <group ref={ref}>
+        <mesh geometry={geo}>
+          <meshStandardMaterial color="#ffd54a" emissive="#ffb300" emissiveIntensity={1.4} metalness={0.6} roughness={0.25} />
+        </mesh>
+      </group>
+      <sprite scale={[3, 3, 1]}>
+        <spriteMaterial map={glowTexture()} color="#ffe08a" transparent opacity={0.7} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
     </group>
   );
 }
 
-/** Đèn lồng tròn và đèn ông sao, treo ở khe giữa các cành để không che tờ giấy. */
-export function Lanterns({ animate }: { animate: boolean }) {
-  const round = useRoundLanternGeometry();
-  const star = useStarGeometry();
-  return (
-    <>
-      {TREE_LAYOUT.lanterns.map((l, i) => (
-        <Lantern key={i} data={l} index={i} animate={animate} round={round} star={star} />
-      ))}
-    </>
-  );
+/* ---------------- Tuyết rơi ---------------- */
+
+const SNOW_BOX = { x: 20, top: 16 };
+
+/** Tuyết rơi bằng một draw call (FR-001-15, NFR-001-09). */
+export function Snowfall({ animate, lowQuality }: { animate: boolean; lowQuality: boolean }) {
+  const width = useThree((s) => s.size.width);
+  const count = snowflakeCount(width, lowQuality);
+  return <SnowPoints key={count} count={count} animate={animate} />;
 }
 
-export const LANTERN_COUNT = TREE_LAYOUT.lanterns.length;
-
-/* ---------------- Đom đóm ---------------- */
-
-export function Fireflies({ animate }: { animate: boolean }) {
-  const COUNT = 70;
+function SnowPoints({ count, animate }: { count: number; animate: boolean }) {
   const ref = useRef<THREE.Points>(null);
-  const seeds = useMemo(() => {
-    const rnd = mulberry32(21);
-    return Array.from({ length: COUNT }, () => ({
-      a: rnd() * Math.PI * 2,
-      r: 1.8 + rnd() * 6.5,
-      y: 0.3 + rnd() * 3.2,
-      s: 0.2 + rnd() * 0.5,
-      p: rnd() * 10,
-    }));
-  }, []);
-  const positions = useMemo(() => new Float32Array(COUNT * 3), []);
-
-  useFrame(({ clock }) => {
-    const pts = ref.current;
-    if (!pts) return;
-    const t = animate ? clock.getElapsedTime() : 0;
-    seeds.forEach((f, i) => {
-      const a = f.a + t * f.s * 0.15;
-      positions[i * 3] = Math.cos(a) * f.r + Math.sin(t * f.s + f.p) * 0.4;
-      positions[i * 3 + 1] = f.y + Math.sin(t * f.s * 1.7 + f.p) * 0.35;
-      positions[i * 3 + 2] = Math.sin(a) * f.r + Math.cos(t * f.s + f.p) * 0.4;
+  const { positions, seeds } = useMemo(() => {
+    const rnd = mulberry32(2512);
+    const positions = new Float32Array(count * 3);
+    const seeds = Array.from({ length: count }, (_, i) => {
+      positions[i * 3] = (rnd() * 2 - 1) * SNOW_BOX.x;
+      positions[i * 3 + 1] = rnd() * SNOW_BOX.top;
+      positions[i * 3 + 2] = (rnd() * 2 - 1) * SNOW_BOX.x;
+      return { speed: 0.35 + rnd() * 0.6, sway: 0.2 + rnd() * 0.5, phase: rnd() * Math.PI * 2 };
     });
+    return { positions, seeds };
+  }, [count]);
+
+  useFrame(({ clock }, rawDelta) => {
+    const pts = ref.current;
+    if (!pts || !animate) return; // reduced-motion: tuyết đứng yên (FR-001-09)
+    const dt = Math.min(rawDelta, 0.05);
+    const t = clock.getElapsedTime();
+    const wind = Math.sin(t * 0.15) * 0.25;
+    for (let i = 0; i < count; i++) {
+      const s = seeds[i]!;
+      const j = i * 3;
+      positions[j + 1] = positions[j + 1]! - s.speed * dt;
+      positions[j] = positions[j]! + (Math.sin(t * s.sway + s.phase) * 0.25 + wind) * dt;
+      positions[j + 2] = positions[j + 2]! + Math.cos(t * s.sway * 0.8 + s.phase) * 0.15 * dt;
+      // Chạm đất → quay lại đỉnh, giữ trong hộp theo trục x
+      if (positions[j + 1]! < 0) {
+        positions[j + 1] = SNOW_BOX.top;
+        if (Math.abs(positions[j]!) > SNOW_BOX.x) positions[j] = -Math.sign(positions[j]!) * SNOW_BOX.x * 0.9;
+      }
+    }
     pts.geometry.attributes.position!.needsUpdate = true;
-    const mat = pts.material as THREE.PointsMaterial;
-    mat.opacity = 0.75 + Math.sin(t * 2.3) * 0.2;
   });
 
   return (
@@ -353,7 +371,7 @@ export function Fireflies({ animate }: { animate: boolean }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial map={glowTexture()} color="#fff0a0" size={0.22} transparent depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
+      <pointsMaterial map={snowflakeTexture()} color="#ffffff" size={0.13} transparent depthWrite={false} sizeAttenuation opacity={0.9} />
     </points>
   );
 }

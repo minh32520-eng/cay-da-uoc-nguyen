@@ -52,7 +52,7 @@ export function leafTexture() {
   });
 }
 
-/** Quầng sáng tròn mềm (dùng cho đèn lồng, đom đóm, trăng). */
+/** Quầng sáng tròn mềm (dùng cho quả châu, ngôi sao, trăng). */
 export function glowTexture() {
   return make('glow', 128, (c, s) => {
     const g = c.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
@@ -65,7 +65,7 @@ export function glowTexture() {
   });
 }
 
-/** Mặt trăng rằm có vết "cây đa chú Cuội" mờ. */
+/** Mặt trăng mùa đông với các vùng biển trăng mờ. */
 export function moonTexture() {
   return make('moon', 512, (c, s) => {
     const rnd = mulberry32(815);
@@ -86,14 +86,6 @@ export function moonTexture() {
       c.fillStyle = g;
       c.fillRect(x - r, y - r, r * 2, r * 2);
     }
-    // Bóng cây đa chú Cuội
-    c.fillStyle = 'rgba(160,128,70,0.33)';
-    c.beginPath();
-    c.ellipse(s * 0.56, s * 0.55, s * 0.13, s * 0.08, 0, 0, Math.PI * 2);
-    c.ellipse(s * 0.49, s * 0.58, s * 0.08, s * 0.06, 0, 0, Math.PI * 2);
-    c.ellipse(s * 0.63, s * 0.59, s * 0.08, s * 0.055, 0, 0, Math.PI * 2);
-    c.fill();
-    c.fillRect(s * 0.55, s * 0.58, s * 0.018, s * 0.1);
   });
 }
 
@@ -140,5 +132,44 @@ export function paperTexture() {
     }
     c.fillStyle = 'rgba(190,20,20,0.75)';
     c.fillRect(s * 0.18, s * 0.74, s * 0.14, s * 0.14);
+  });
+}
+
+/** Cành thông: cuống giữa và nhiều lá kim hai bên. Màu trắng để instance color nhuộm. */
+export function pineSprigTexture() {
+  return make('pine', 128, (c, s) => {
+    const rnd = mulberry32(7);
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(255,255,255,1)';
+    c.lineWidth = 3;
+    c.beginPath();
+    c.moveTo(s / 2, s * 0.95);
+    c.lineTo(s / 2, s * 0.05);
+    c.stroke();
+    for (let i = 0; i < 26; i++) {
+      const y = s * (0.1 + (i / 26) * 0.82);
+      const len = s * (0.18 + 0.22 * Math.sin((i / 26) * Math.PI)) * (0.85 + rnd() * 0.3);
+      for (const side of [-1, 1]) {
+        const v = 215 + Math.floor(rnd() * 40);
+        c.strokeStyle = `rgba(${v},${v},${v},1)`;
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(s / 2, y);
+        c.lineTo(s / 2 + side * len, y - len * 0.55);
+        c.stroke();
+      }
+    }
+  });
+}
+
+/** Bông tuyết mềm, sáng ở tâm. */
+export function snowflakeTexture() {
+  return make('snowflake', 64, (c, s) => {
+    const g = c.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(255,255,255,0.85)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g;
+    c.fillRect(0, 0, s, s);
   });
 }

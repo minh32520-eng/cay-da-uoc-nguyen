@@ -3,7 +3,7 @@ import type { WishCategory } from './types';
 const SUGGESTIONS: Record<WishCategory, readonly string[]> = {
   family: [
     'Cầu mong ông bà cha mẹ luôn mạnh khoẻ, sống lâu bên con cháu.',
-    'Ước cả nhà năm nào cũng được quây quần phá cỗ đêm rằm.',
+    'Ước cả nhà năm nào cũng được quây quần bên cây thông đêm Giáng sinh.',
     'Mong gia đình mình luôn bình an, đầm ấm và yêu thương nhau.',
     'Ước bố mẹ bớt vất vả, có thêm thời gian nghỉ ngơi.',
     'Mong anh chị em trong nhà luôn hoà thuận, đùm bọc nhau.',
@@ -23,11 +23,11 @@ const SUGGESTIONS: Record<WishCategory, readonly string[]> = {
     'Mong tâm an, thân khoẻ, sống chậm lại một chút.',
   ],
   love: [
-    'Ước tìm được người thương cùng ngắm trăng rằm năm sau.',
+    'Ước tìm được người thương cùng đón Giáng sinh năm sau.',
     'Mong chúng mình luôn thấu hiểu và nắm tay nhau thật lâu.',
     'Ước người ấy nhận ra tình cảm của mình.',
-    'Mong tình yêu của hai đứa luôn ngọt như bánh nướng nhân đậu xanh.',
-    'Ước dù xa cách, chúng mình vẫn cùng nhìn chung một vầng trăng.',
+    'Mong tình yêu của hai đứa luôn ấm áp như ly cacao đêm tuyết.',
+    'Ước dù xa cách, chúng mình vẫn cùng ngắm chung một bầu trời sao.',
   ],
   career: [
     'Ước công việc thuận lợi, được thăng tiến trong năm nay.',
@@ -37,10 +37,10 @@ const SUGGESTIONS: Record<WishCategory, readonly string[]> = {
     'Ước đồng nghiệp luôn vui vẻ, hỗ trợ nhau hết mình.',
   ],
   other: [
-    'Ước đêm rằm năm nay trăng thật tròn và thật sáng.',
-    'Mong mọi em nhỏ đều có một chiếc đèn ông sao thật đẹp.',
+    'Ước đêm Giáng sinh năm nay có tuyết rơi thật đẹp.',
+    'Mong mọi em nhỏ đều nhận được một món quà Giáng sinh.',
     'Ước thế giới bình yên, không còn ai phải chịu khổ.',
-    'Mong mình luôn giữ được niềm vui trẻ thơ như đêm Trung Thu.',
+    'Mong mình luôn giữ được niềm vui trẻ thơ như đêm Giáng sinh.',
     'Ước được đi du lịch thật nhiều nơi cùng người thân.',
   ],
 };

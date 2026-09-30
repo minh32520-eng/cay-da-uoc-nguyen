@@ -1,13 +1,13 @@
 # AGENTS.md — Quy tắc cho AI Agent
 
-Tài liệu này quy định cách mọi AI coding agent (Claude Code, Copilot, Cursor, Codex…) làm việc trong repo **Cây Đa Ước Nguyện Trung Thu**.
+Tài liệu này quy định cách mọi AI coding agent (Claude Code, Copilot, Cursor, Codex…) làm việc trong repo **Cây Thông Ước Nguyện** (tên repo cũ: cay-da-uoc-nguyen).
 Đọc file này **trước mọi tác vụ**. Nó bổ sung cho [.specify/memory/constitution.md](.specify/memory/constitution.md) và không được mâu thuẫn với hiến pháp.
 
 ---
 
 ## 1. Tổng quan dự án
 
-- Website React (SPA tĩnh) hiển thị **mô hình 3D cây đa** đêm Trung Thu; người dùng viết **tờ giấy ước nguyện** và treo lên cành cây.
+- Website React (SPA tĩnh) hiển thị **mô hình 3D cây thông Giáng sinh** giữa trời tuyết (tuần lộc, người tuyết); người dùng viết **tờ giấy ước nguyện** và treo lên các tầng lá.
 - **Không có backend.** Dữ liệu lưu `localStorage`; chia sẻ qua URL.
 - Phương pháp: **Spec-Driven Development (SDD)** theo chuẩn **Spec Kit**; yêu cầu viết theo **EARS**.
 

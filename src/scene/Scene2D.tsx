@@ -1,32 +1,70 @@
 import { useEffect, useMemo } from 'react';
 import { PAPER_HEX, type Wish } from '@/entities/wish';
 import { events } from '@/shared/lib/events';
+import { mulberry32 } from '@/shared/lib/random';
 import { vi } from '@/shared/i18n/vi';
 import { BRANCH_SLOTS } from './branchSlots';
 import type { SceneProps } from './sceneProps';
-import { BRANCH_COUNT, SLOTS_PER_BRANCH } from './treeLayout';
+import { TREE_LAYOUT } from './treeLayout';
 
 const W = 800;
 const H = 600;
-const TRUNK_TOP = { x: 400, y: 330 };
+const CX = 400;
+const GROUND = 565;
+const SY = 54; // px mỗi đơn vị chiều cao
+const SX = 95; // px mỗi đơn vị bán kính
+const svgY = (y: number) => GROUND - y * SY;
 
-/** Toạ độ 2D: 10 cành xoè hình quạt, mỗi cành 10 slot (cùng thứ tự với BRANCH_SLOTS). */
-function slot2d(index: number) {
-  const branch = Math.floor(index / SLOTS_PER_BRANCH);
-  const k = index % SLOTS_PER_BRANCH;
-  const phi = Math.PI * (0.06 + (0.88 * branch) / (BRANCH_COUNT - 1));
-  const dist = 95 + k * 25;
-  const dropY = Math.sin((k / SLOTS_PER_BRANCH) * Math.PI) * -18; // cành hơi cong
+/** Toạ độ 2D của từng slot: dàn đều theo bề ngang mép tầng lá (cùng thứ tự BRANCH_SLOTS). */
+const POS = TREE_LAYOUT.slotMeta.map(({ layer, k, n }) => {
+  const l = TREE_LAYOUT.layers[layer]!;
   return {
-    x: TRUNK_TOP.x - Math.cos(phi) * dist,
-    y: TRUNK_TOP.y - 20 - Math.sin(phi) * dist * 0.55 + dropY + (k % 2) * 6,
-    branch,
-    phi,
+    x: CX + (((k + 0.5) / n) * 2 - 1) * l.radius * SX * 0.92,
+    y: svgY(l.y) + 3 + (k % 2) * 5,
   };
+});
+const SLOT_INDEX = new Map(BRANCH_SLOTS.map((s, i) => [s.id, i]));
+
+/** Đường viền một tầng lá: mặt cong lõm + mép răng cưa rủ xuống. */
+function layerPath(li: number): string {
+  const l = TREE_LAYOUT.layers[li]!;
+  const pts: string[] = [];
+  const steps = 24;
+  for (let i = 0; i <= steps; i++) {
+    const r = -l.radius + (i / steps) * 2 * l.radius;
+    const t = 1 - Math.abs(r) / l.radius;
+    pts.push(`${(CX + r * SX).toFixed(1)},${svgY(l.y + l.height * t * t).toFixed(1)}`);
+  }
+  const tips = Math.max(6, Math.round(l.radius * 5));
+  for (let i = tips; i >= 0; i--) {
+    const x = CX - l.radius * SX + (i / tips) * 2 * l.radius * SX;
+    pts.push(`${x.toFixed(1)},${(svgY(l.y) + (i % 2 === 0 ? 9 : 0)).toFixed(1)}`);
+  }
+  return `M${pts.join(' L')} Z`;
 }
 
-const POS = BRANCH_SLOTS.map((_, i) => slot2d(i));
-const SLOT_INDEX = new Map(BRANCH_SLOTS.map((s, i) => [s.id, i]));
+function snowCapPath(li: number): string {
+  const l = TREE_LAYOUT.layers[li]!;
+  const seg = (from: number, to: number) => {
+    const pts: string[] = [];
+    for (let i = 0; i <= 8; i++) {
+      const r = from + ((to - from) * i) / 8;
+      const t = 1 - Math.abs(r) / l.radius;
+      pts.push(`${(CX + r * SX).toFixed(1)},${(svgY(l.y + l.height * t * t) + 1).toFixed(1)}`);
+    }
+    return `M${pts.join(' L')}`;
+  };
+  return `${seg(-l.radius, -l.radius * 0.45)} ${seg(l.radius * 0.45, l.radius)}`;
+}
+
+function starPath(cx: number, cy: number, R: number, r: number): string {
+  const pts = Array.from({ length: 10 }, (_, i) => {
+    const rad = i % 2 === 0 ? R : r;
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    return `${(cx + Math.cos(a) * rad).toFixed(1)},${(cy + Math.sin(a) * rad).toFixed(1)}`;
+  });
+  return `M${pts.join(' L')} Z`;
+}
 
 /** Chế độ 2D dự phòng khi không có WebGL (FR-001-10) — mọi tờ giấy là nút bấm được. */
 export function Scene2D({ wishes, onWishClick, pickableSlots, onSlotClick, highlightIds, selectedId, reducedMotion, onBackgroundClick }: SceneProps) {
@@ -34,14 +72,10 @@ export function Scene2D({ wishes, onWishClick, pickableSlots, onSlotClick, highl
     events.emit('scene:ready', { mode: '2d' });
   }, []);
 
-  const branches = useMemo(
-    () =>
-      Array.from({ length: BRANCH_COUNT }, (_, b) => {
-        const end = POS[b * SLOTS_PER_BRANCH + SLOTS_PER_BRANCH - 1]!;
-        return { x1: TRUNK_TOP.x, y1: TRUNK_TOP.y, x2: end.x + (end.x - TRUNK_TOP.x) * 0.08, y2: end.y - 6 };
-      }),
-    [],
-  );
+  const flakes = useMemo(() => {
+    const rnd = mulberry32(77);
+    return Array.from({ length: 60 }, () => ({ x: rnd() * W, y: rnd() * H, r: 1 + rnd() * 2.2, dur: 6 + rnd() * 8, delay: -rnd() * 14 }));
+  }, []);
 
   const activate = (e: React.KeyboardEvent, fn: () => void) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -68,12 +102,12 @@ export function Scene2D({ wishes, onWishClick, pickableSlots, onSlotClick, highl
         onClick={() => onWishClick?.(w.id)}
         onKeyDown={(e) => activate(e, () => onWishClick?.(w.id))}
       >
-        <line x1={p.x} y1={p.y} x2={p.x} y2={p.y + 14} stroke="#b91c1c" strokeWidth={1.5} />
+        <line x1={p.x} y1={p.y} x2={p.x} y2={p.y + 10} stroke="#b91c1c" strokeWidth={1.3} />
         <rect
-          x={p.x - (selected ? 9 : 7)}
-          y={p.y + 14}
-          width={selected ? 18 : 14}
-          height={selected ? 26 : 21}
+          x={p.x - (selected ? 8 : 6)}
+          y={p.y + 10}
+          width={selected ? 16 : 12}
+          height={selected ? 23 : 18}
           rx={2}
           fill={PAPER_HEX[w.paperColor]}
           stroke="#00000040"
@@ -83,51 +117,69 @@ export function Scene2D({ wishes, onWishClick, pickableSlots, onSlotClick, highl
     );
   };
 
+  const layerCount = TREE_LAYOUT.layers.length;
+  const top = TREE_LAYOUT.layers[layerCount - 1]!;
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="group" aria-label={vi.scene.tree2dLabel} preserveAspectRatio="xMidYMid meet">
       <defs>
         <radialGradient id="moonGlow">
-          <stop offset="0%" stopColor="#fff6cf" />
-          <stop offset="60%" stopColor="#ffe69a" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#ffe69a" stopOpacity="0" />
+          <stop offset="0%" stopColor="#eef3ff" />
+          <stop offset="60%" stopColor="#cfdcff" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="#cfdcff" stopOpacity="0" />
         </radialGradient>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0a1128" />
+          <stop offset="100%" stopColor="#1f2c55" />
+        </linearGradient>
       </defs>
-      <rect width={W} height={H} fill="#070b1f" onClick={onBackgroundClick} />
-      <circle cx={660} cy={90} r={90} fill="url(#moonGlow)" />
-      <circle cx={660} cy={90} r={44} fill="#fff3c4" />
-      <ellipse cx={400} cy={575} rx={380} ry={40} fill="#13261a" />
-      {/* Thân & rễ */}
-      <path d="M360 580 C 370 480, 350 400, 385 330 L 415 330 C 450 400, 430 480, 440 580 Z" fill="#4a3120" />
-      <path d="M372 580 C 330 560, 300 575, 280 585 M 428 580 C 470 560, 500 575, 520 585" stroke="#4a3120" strokeWidth={10} fill="none" />
-      {branches.map((b, i) => (
-        <line key={i} x1={b.x1} y1={b.y1} x2={b.x2} y2={b.y2} stroke="#4a3120" strokeWidth={9 - (i % 3)} strokeLinecap="round" />
-      ))}
-      {/* Rễ phụ buông */}
-      {branches.map((b, i) => {
-        const x = b.x1 + (b.x2 - b.x1) * 0.6;
-        const y = b.y1 + (b.y2 - b.y1) * 0.6;
-        return <line key={`r${i}`} x1={x} y1={y} x2={x + 2} y2={570} stroke="#5a3d27" strokeWidth={1.5} opacity={0.7} />;
-      })}
-      {/* Tán lá phía trên cành */}
-      {branches.map((b, i) => (
-        <g key={`c${i}`} fill={i % 2 ? '#1c4d2a' : '#15401f'}>
-          <circle cx={b.x1 + (b.x2 - b.x1) * 0.45} cy={b.y1 + (b.y2 - b.y1) * 0.45 - 55} r={58} />
-          <circle cx={b.x1 + (b.x2 - b.x1) * 0.85} cy={b.y1 + (b.y2 - b.y1) * 0.85 - 45} r={48} />
+      <rect width={W} height={H} fill="url(#sky)" onClick={onBackgroundClick} />
+      <circle cx={130} cy={90} r={80} fill="url(#moonGlow)" />
+      <circle cx={130} cy={90} r={38} fill="#eef3ff" />
+      {/* Đồi tuyết */}
+      <path d={`M0 ${GROUND - 20} Q 200 ${GROUND - 60} 400 ${GROUND - 10} T 800 ${GROUND - 30} V600 H0 Z`} fill="#dfe7f5" />
+      <ellipse cx={CX} cy={GROUND + 5} rx={380} ry={30} fill="#f4f7fd" />
+
+      <rect x={CX - 14} y={svgY(TREE_LAYOUT.layers[0]!.y) - 10} width={28} height={GROUND - svgY(TREE_LAYOUT.layers[0]!.y) + 10} fill="#4b3021" />
+      {TREE_LAYOUT.layers.map((_, li) => (
+        <g key={li}>
+          <path d={layerPath(li)} fill={li % 2 ? '#1f5c34' : '#1a5230'} />
+          <path d={snowCapPath(li)} stroke="#f3f7ff" strokeWidth={5} strokeLinecap="round" fill="none" opacity={0.9} />
         </g>
       ))}
-      <circle cx={400} cy={170} r={95} fill="#1a4726" />
-      {/* Đèn lồng */}
-      {branches.filter((_, i) => i % 2 === 0).map((b, i) => {
-        const x = b.x1 + (b.x2 - b.x1) * 0.7;
-        const y = b.y1 + (b.y2 - b.y1) * 0.7;
-        return (
-          <g key={`l${i}`}>
-            <line x1={x} y1={y} x2={x} y2={y + 26} stroke="#3b2a1a" />
-            <ellipse cx={x} cy={y + 38} rx={10} ry={13} fill="#e63946" />
-            <ellipse cx={x} cy={y + 38} rx={16} ry={18} fill="#ff9a3c" opacity={0.25} />
-          </g>
-        );
+      {/* Dây đèn dọc mép tầng */}
+      {TREE_LAYOUT.layers.map((l, li) => {
+        const n = Math.round(l.radius * 6);
+        return Array.from({ length: n }, (_, k) => (
+          <circle
+            key={`${li}-${k}`}
+            cx={CX + (((k + 0.5) / n) * 2 - 1) * l.radius * SX * 0.85}
+            cy={svgY(l.y) - 6}
+            r={2.2}
+            fill={TREE_LAYOUT.lightColors[(k + li) % TREE_LAYOUT.lightColors.length]}
+          />
+        ));
       })}
+      <path d={starPath(CX, svgY(top.y + top.height) - 12, 20, 8)} fill="#ffd54a" stroke="#ffb300" strokeWidth={1.5} />
+
+      {/* Người tuyết */}
+      {[
+        [110, 0.9],
+        [690, 1],
+      ].map(([x, s]) => (
+        <g key={x} transform={`translate(${x} ${GROUND - 4}) scale(${s})`}>
+          <circle cx={0} cy={-28} r={28} fill="#f7faff" />
+          <circle cx={0} cy={-72} r={20} fill="#f7faff" />
+          <circle cx={0} cy={-104} r={14} fill="#f7faff" />
+          <path d="M-14 -90 H14" stroke="#c0392b" strokeWidth={6} strokeLinecap="round" />
+          <circle cx={-5} cy={-107} r={2} fill="#151515" />
+          <circle cx={5} cy={-107} r={2} fill="#151515" />
+          <path d="M0 -103 L14 -100 L0 -99 Z" fill="#ff7a1a" />
+          <rect x={-11} y={-132} width={22} height={16} fill="#1b1b1f" />
+          <rect x={-16} y={-118} width={32} height={3} fill="#1b1b1f" />
+        </g>
+      ))}
+
       {wishes.map(renderWish)}
       {pickableSlots?.map((s) => {
         const i = SLOT_INDEX.get(s.id);
@@ -137,8 +189,8 @@ export function Scene2D({ wishes, onWishClick, pickableSlots, onSlotClick, highl
           <circle
             key={s.id}
             cx={p.x}
-            cy={p.y + 22}
-            r={8}
+            cy={p.y + 18}
+            r={7}
             fill="#fde68a"
             className="cursor-pointer"
             role="button"
@@ -149,6 +201,22 @@ export function Scene2D({ wishes, onWishClick, pickableSlots, onSlotClick, highl
           />
         );
       })}
+
+      {/* Tuyết rơi (FR-001-15); reduced-motion thì đứng yên */}
+      <g aria-hidden="true" pointerEvents="none">
+        {flakes.map((f, i) => (
+          <circle
+            key={i}
+            cx={f.x}
+            cy={reducedMotion ? f.y : -10}
+            r={f.r}
+            fill="#ffffff"
+            opacity={0.85}
+            className={reducedMotion ? undefined : 'snow-fall'}
+            style={reducedMotion ? undefined : { animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s` }}
+          />
+        ))}
+      </g>
     </svg>
   );
 }

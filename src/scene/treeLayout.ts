@@ -2,199 +2,181 @@ import { mulberry32 } from '@/shared/lib/random';
 import type { BranchSlot, Vec3 } from './types';
 
 /**
- * Bố cục cây đa sinh theo seed cố định — cảnh 3D, chế độ 2D và BRANCH_SLOTS
- * cùng dùng một nguồn nên vị trí slot luôn khớp với cành.
+ * Bố cục cây thông sinh tất định — cảnh 3D, chế độ 2D và BRANCH_SLOTS cùng dùng
+ * một nguồn nên vị trí chỗ treo luôn khớp với tầng lá.
+ *
+ * Mỗi tầng lá là một "váy" hình nón có mặt cong lõm: y = y0 + H·(1 − r/R)².
+ * Mép tầng gần như nằm ngang nên tờ giấy treo dưới mép tầng trên
+ * luôn nằm ngoài mặt nón của tầng dưới (AC-001-19).
  */
-export interface Branch {
-  angle: number;
-  start: Vec3;
-  end: Vec3;
-  radiusStart: number;
-  radiusEnd: number;
+
+export interface PineLayer {
+  /** Độ cao mép dưới của tầng. */
+  y: number;
+  /** Bán kính mép. */
+  radius: number;
+  /** Chiều cao từ mép tới chóp. */
+  height: number;
 }
 
-export interface CanopyBlob {
+export interface Ornament {
   position: Vec3;
-  radius: number;
-  shade: number; // 0..1
+  color: string;
+  size: number;
 }
 
-export interface AerialRoot {
-  top: Vec3;
-  radius: number;
-}
-
-export interface LanternAnchor {
-  /** Điểm buộc dây trên tán. */
-  anchor: Vec3;
-  /** Độ dài dây tới đỉnh đèn. */
-  drop: number;
-  kind: 'round' | 'star';
+export interface SlotMeta {
+  layer: number;
+  k: number;
+  n: number;
 }
 
 export interface TreeLayout {
-  branches: Branch[];
-  twigs: Branch[];
-  canopy: CanopyBlob[];
-  roots: AerialRoot[];
+  layers: PineLayer[];
   slots: BranchSlot[];
-  lanterns: LanternAnchor[];
+  slotMeta: SlotMeta[];
+  ornaments: Ornament[];
+  lights: Vec3[];
+  lightColors: string[];
+  starY: number;
+  trunk: { radius: number; top: number };
 }
 
-export const BRANCH_COUNT = 10;
-export const SLOTS_PER_BRANCH = 10;
-export const PAPER_HANG_LENGTH = 0.28;
+export const PAPER_HANG_LENGTH = 0.2;
 export const PAPER_WIDTH = 0.3;
 export const PAPER_HEIGHT = 0.44;
-export const LANTERN_BODY_OFFSET = 0.3; // từ đỉnh đèn tới tâm thân đèn
-/** Khoảng cách tối thiểu giữa tâm đèn lồng và tâm tờ giấy để không che nhau. */
-export const LANTERN_CLEARANCE = 1.0;
+
+const LAYER_COUNT = 7;
+const LAYER_GAP = 0.95;
+const LAYER_HEIGHT = 1.9;
+const BASE_Y = 1.3;
+const BASE_RADIUS = 3.4;
+const RADIUS_STEP = 0.45;
+/** Số chỗ treo mỗi tầng (tỉ lệ với chu vi mép), tổng = 100. */
+const SLOTS_PER_LAYER = [24, 21, 18, 15, 11, 7, 4];
+const SLOT_OUTSET = 0.06;
+
+/** Độ cao mặt nón của một tầng tại bán kính r; null nếu r nằm ngoài mép. */
+export function coneSurfaceY(layer: PineLayer, r: number): number | null {
+  if (r > layer.radius) return null;
+  const t = 1 - r / layer.radius;
+  return layer.y + layer.height * t * t;
+}
 
 export function paperCenter(slot: Pick<BranchSlot, 'position'>): Vec3 {
   return [slot.position[0], slot.position[1] - PAPER_HANG_LENGTH - PAPER_HEIGHT / 2, slot.position[2]];
 }
 
-export function lanternCenter(l: LanternAnchor): Vec3 {
-  return [l.anchor[0], l.anchor[1] - l.drop - LANTERN_BODY_OFFSET, l.anchor[2]];
-}
-
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 /**
- * Đèn lồng treo ở khe giữa hai cành (không cùng cành với slot),
- * lùi dần ra ngoài cho tới khi cách mọi tờ giấy ≥ LANTERN_CLEARANCE.
+ * Quả châu che tờ giấy khi nhìn từ ngoài vào (FR-001-19): chồng lấn theo phương ngang
+ * (cung tròn quanh thân) VÀ theo độ cao (cả dây treo), VÀ không nằm hẳn phía sau tờ giấy.
  */
-function placeLanterns(branches: Branch[], slots: Omit<BranchSlot, 'id' | 'tier'>[]): LanternAnchor[] {
-  const centers = slots.map(paperCenter);
-  const out: LanternAnchor[] = [];
-  for (let i = 0; i < branches.length; i++) {
-    const a = branches[i]!;
-    const b = branches[(i + 1) % branches.length]!;
-    let gap = b.angle - a.angle;
-    if (gap < 0) gap += Math.PI * 2;
-    const angle = a.angle + gap / 2;
-    const reachA = Math.hypot(a.end[0], a.end[2]);
-    const reachB = Math.hypot(b.end[0], b.end[2]);
-    const baseY = (a.end[1] + b.end[1]) / 2 + 0.55;
-    const drop = 0.35 + (i % 3) * 0.12;
-    let r = Math.min(reachA, reachB) * 0.8;
-    let candidate: LanternAnchor;
-    for (;;) {
-      candidate = { anchor: [Math.cos(angle) * r, baseY, Math.sin(angle) * r], drop, kind: i % 3 === 1 ? 'star' : 'round' };
-      const c = lanternCenter(candidate);
-      if (centers.every((p) => dist(p, c) >= LANTERN_CLEARANCE) || r > 8) break;
-      r += 0.15;
-    }
-    out.push(candidate);
-  }
-  return out;
+export function ornamentCoversPaper(o: Ornament, slot: Pick<BranchSlot, 'position'>): boolean {
+  const [px, py, pz] = slot.position;
+  const [ox, oy, oz] = o.position;
+  const rp = Math.hypot(px, pz);
+  const ro = Math.hypot(ox, oz);
+  let dth = Math.atan2(oz, ox) - Math.atan2(pz, px);
+  dth = Math.atan2(Math.sin(dth), Math.cos(dth));
+  const horizontal = Math.abs(dth) * rp < PAPER_WIDTH / 2 + o.size + 0.05;
+  const bottom = py - PAPER_HANG_LENGTH - PAPER_HEIGHT;
+  const vertical = oy + o.size > bottom - 0.05 && oy - o.size < py + 0.05;
+  const inFront = ro + o.size > rp - 0.08;
+  const touching = dist(o.position, paperCenter(slot)) < o.size + PAPER_HEIGHT / 2 + 0.05;
+  return (horizontal && vertical && inFront) || touching;
 }
 
-export function pointOnBranch(b: Branch, t: number): Vec3 {
-  // Cành cong nhẹ lên ở giữa
-  const arch = Math.sin(t * Math.PI) * 0.35;
-  return [
-    b.start[0] + (b.end[0] - b.start[0]) * t,
-    b.start[1] + (b.end[1] - b.start[1]) * t + arch,
-    b.start[2] + (b.end[2] - b.start[2]) * t,
-  ];
-}
+const ORNAMENT_COLORS = ['#d7263d', '#f2b134', '#2e86de', '#c0c0d0', '#8e44ad', '#e84393', '#1abc9c'];
+const LIGHT_COLORS = ['#ffd166', '#ff6b6b', '#4dabf7', '#69db7c', '#f783ac'];
 
-function buildLayout(): TreeLayout {
-  const rnd = mulberry32(20260925);
-  const branches: Branch[] = [];
-  const twigs: Branch[] = [];
-  const canopy: CanopyBlob[] = [];
-  const roots: AerialRoot[] = [];
+function build(): TreeLayout {
+  const rnd = mulberry32(20261225);
+  const layers: PineLayer[] = Array.from({ length: LAYER_COUNT }, (_, i) => ({
+    y: BASE_Y + LAYER_GAP * i,
+    radius: BASE_RADIUS - RADIUS_STEP * i,
+    height: LAYER_HEIGHT,
+  }));
+
+  // Chỗ treo: đều quanh mép mỗi tầng, lệch pha giữa các tầng để không thẳng hàng
   const rawSlots: Omit<BranchSlot, 'id' | 'tier'>[] = [];
-
-  for (let i = 0; i < BRANCH_COUNT; i++) {
-    const angle = (i / BRANCH_COUNT) * Math.PI * 2 + (rnd() - 0.5) * 0.25;
-    const startH = 2.1 + rnd() * 0.8;
-    const reach = 3.7 + rnd() * 1.3;
-    const endH = 2.9 + rnd() * 1.6;
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
-    const b: Branch = {
-      angle,
-      start: [c * 0.4, startH, s * 0.4],
-      end: [c * reach, endH, s * reach],
-      radiusStart: 0.24,
-      radiusEnd: 0.07,
-    };
-    branches.push(b);
-
-    // Nhánh con vươn lên để đỡ tán lá
-    for (const t of [0.45, 0.8]) {
-      const p = pointOnBranch(b, t);
-      const up = 1.0 + rnd() * 0.6;
-      const side = (rnd() - 0.5) * 0.8;
-      twigs.push({
-        angle,
-        start: p,
-        end: [p[0] + c * 0.5 - s * side, p[1] + up, p[2] + s * 0.5 + c * side],
-        radiusStart: 0.1,
-        radiusEnd: 0.04,
-      });
-    }
-
-    // Tán lá nằm phía trên cành để tờ giấy bên dưới lộ ra
-    for (const t of [0.35, 0.65, 0.95]) {
-      const p = pointOnBranch(b, t);
-      canopy.push({
-        position: [p[0] + (rnd() - 0.5) * 0.6, p[1] + 1.25 + rnd() * 0.6, p[2] + (rnd() - 0.5) * 0.6],
-        radius: 1.05 + rnd() * 0.55,
-        shade: rnd(),
-      });
-    }
-
-    // Rễ phụ buông thõng — đặc trưng của cây đa
-    // t được "nắn" vào khe giữa hai slot liền kề để rễ không đè lên tờ giấy
-    const snap = (t: number) => 0.336 + 0.072 * Math.round((t - 0.336) / 0.072);
-    for (const t of [0.5 + rnd() * 0.1, 0.78 + rnd() * 0.12]) {
-      roots.push({ top: pointOnBranch(b, snap(t)), radius: 0.025 + rnd() * 0.03 });
-    }
-
-    // 10 slot dọc cành, so le hai bên để không chồng nhau
-    const perp: Vec3 = [-s, 0, c];
-    for (let k = 0; k < SLOTS_PER_BRANCH; k++) {
-      const t = 0.3 + k * 0.072;
-      const p = pointOnBranch(b, t);
-      const side = (k % 2 === 0 ? 1 : -1) * 0.13;
+  const slotMeta: SlotMeta[] = [];
+  layers.forEach((layer, li) => {
+    const n = SLOTS_PER_LAYER[li]!;
+    const phase = li * 0.61;
+    for (let k = 0; k < n; k++) {
+      const a = phase + (k / n) * Math.PI * 2;
+      const r = layer.radius + SLOT_OUTSET;
       rawSlots.push({
-        position: [p[0] + perp[0] * side, p[1] - 0.05, p[2] + perp[2] * side],
-        rotationY: Math.PI / 2 - angle,
+        position: [Math.cos(a) * r, layer.y + 0.02, Math.sin(a) * r],
+        rotationY: Math.PI / 2 - a,
       });
+      slotMeta.push({ layer: li, k, n });
     }
-  }
-
-  // Tán trung tâm
-  for (let i = 0; i < 7; i++) {
-    const a = rnd() * Math.PI * 2;
-    const r = rnd() * 1.8;
-    canopy.push({
-      position: [Math.cos(a) * r, 4.9 + rnd() * 1.2, Math.sin(a) * r],
-      radius: 1.4 + rnd() * 0.6,
-      shade: rnd(),
-    });
-  }
-
-  // Tầng theo độ cao: 34 thấp, 33 giữa, 33 cao
-  const byHeight = rawSlots
-    .map((s, i) => ({ y: s.position[1], i }))
-    .sort((a, b) => a.y - b.y);
-  const tiers: BranchSlot['tier'][] = new Array(rawSlots.length);
-  byHeight.forEach(({ i }, rank) => {
-    tiers[i] = rank < 34 ? 'low' : rank < 67 ? 'mid' : 'high';
   });
 
+  // Tầng theo độ cao: 34 thấp, 33 giữa, 33 cao
+  const order = rawSlots.map((s, i) => ({ y: s.position[1], i })).sort((a, b) => a.y - b.y || a.i - b.i);
+  const tiers: BranchSlot['tier'][] = new Array(rawSlots.length);
+  order.forEach(({ i }, rank) => {
+    tiers[i] = rank < 34 ? 'low' : rank < 67 ? 'mid' : 'high';
+  });
   const slots: BranchSlot[] = rawSlots.map((s, i) => ({
     ...s,
     id: `slot-${String(i + 1).padStart(3, '0')}`,
     tier: tiers[i] ?? 'mid',
   }));
 
-  return { branches, twigs, canopy, roots, slots, lanterns: placeLanterns(branches, rawSlots) };
+  // Quả châu: ngồi trên vùng ngoài của mỗi tầng lá, chỉ nhận vị trí không che tờ giấy nào
+  const ornaments: Ornament[] = [];
+  for (let li = 0; li < LAYER_COUNT && ornaments.length < 18; li++) {
+    const layer = layers[li]!;
+    const tries = 600;
+    let placedHere = 0;
+    for (let t = 0; t < tries && placedHere < 3; t++) {
+      const a = rnd() * Math.PI * 2;
+      // Vùng ngoài của tầng (không bị tầng trên che), ngồi trên mặt lá
+      const r = layer.radius * (0.7 + rnd() * 0.22);
+      const size = 0.13 + rnd() * 0.05;
+      const y = coneSurfaceY(layer, r)! + size + 0.04; // tâm quả châu, đáy chạm mặt lá
+      const candidate: Ornament = {
+        position: [Math.cos(a) * r, y, Math.sin(a) * r],
+        color: ORNAMENT_COLORS[ornaments.length % ORNAMENT_COLORS.length]!,
+        size,
+      };
+      if (slots.some((s) => ornamentCoversPaper(candidate, s))) continue;
+      if (!ornaments.every((o) => dist(o.position, candidate.position) >= 0.7)) continue;
+      ornaments.push(candidate);
+      placedHere++;
+    }
+  }
+
+  // Dây đèn chạy dọc mép mỗi tầng, võng nhẹ giữa các điểm buộc
+  const lights: Vec3[] = [];
+  const lightColors: string[] = [];
+  layers.forEach((layer, li) => {
+    const n = Math.round(layer.radius * 14);
+    for (let k = 0; k < n; k++) {
+      const a = li * 0.3 + (k / n) * Math.PI * 2;
+      const r = layer.radius * 0.93;
+      const sag = Math.abs(Math.sin((k / n) * Math.PI * 8)) * 0.05;
+      lights.push([Math.cos(a) * r, coneSurfaceY(layer, r)! + 0.06 - sag, Math.sin(a) * r]);
+      lightColors.push(LIGHT_COLORS[(k + li) % LIGHT_COLORS.length]!);
+    }
+  });
+
+  const top = layers[LAYER_COUNT - 1]!;
+  return {
+    layers,
+    slots,
+    slotMeta,
+    ornaments,
+    lights,
+    lightColors,
+    starY: top.y + top.height + 0.3,
+    trunk: { radius: 0.32, top: top.y + top.height * 0.6 },
+  };
 }
 
-export const TREE_LAYOUT: TreeLayout = buildLayout();
+export const TREE_LAYOUT: TreeLayout = build();

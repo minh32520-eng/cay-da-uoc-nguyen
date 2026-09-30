@@ -1,7 +1,7 @@
 import { WishPaperPreview } from '@/features/write-wish';
 import { vi } from '@/shared/i18n/vi';
 import { Modal } from '@/shared/ui/Modal';
-import { LanternIcon } from '@/shared/ui/icons';
+import { OrnamentIcon } from '@/shared/ui/icons';
 import { useIncomingStore } from './useIncomingSharedWish';
 
 /** Tờ ước nguyện "khách" từ link chia sẻ (FR-006-07/08). */
@@ -22,7 +22,7 @@ export function IncomingWishOverlay() {
               {vi.share.dismiss}
             </button>
             <button type="button" className="btn-primary flex-1" onClick={() => accept()}>
-              <LanternIcon /> {vi.share.accept}
+              <OrnamentIcon /> {vi.share.accept}
             </button>
           </div>
         </div>

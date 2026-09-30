@@ -6,8 +6,9 @@ import { vi } from '@/shared/i18n/vi';
 import { useSceneStore } from '../sceneStore';
 import type { SceneProps } from '../sceneProps';
 import { CameraRig, DEFAULT_CAMERA } from './CameraRig';
-import { Fireflies, Ground, Lanterns, Sky } from './Environment';
-import { Rabbits } from './Rabbits';
+import { GarlandLights, Ground, Ornaments, Sky, Snowfall, TreeStar } from './Environment';
+import { Reindeer } from './Reindeer';
+import { Snowmen } from './Snowmen';
 import { SlotMarkers } from './SlotMarkers';
 import { Tree } from './Tree';
 import { WishPapers } from './WishPapers';
@@ -56,9 +57,12 @@ export default function BanyanScene3D(props: SceneProps) {
       <Sky animate={!props.reducedMotion} />
       <Ground />
       <Tree animate={!props.reducedMotion} />
-      <Fireflies animate={!props.reducedMotion} />
-      <Rabbits animate={!props.reducedMotion} />
-      <Lanterns animate={!props.reducedMotion} />
+      <Ornaments animate={!props.reducedMotion} />
+      <GarlandLights animate={!props.reducedMotion} />
+      <TreeStar animate={!props.reducedMotion} />
+      <Reindeer animate={!props.reducedMotion} />
+      <Snowmen animate={!props.reducedMotion} />
+      <Snowfall animate={!props.reducedMotion} lowQuality={lowQuality} />
       <WishPapers
         wishes={props.wishes}
         reducedMotion={props.reducedMotion}

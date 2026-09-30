@@ -80,7 +80,7 @@ export function ShareQrDialog({ url, onClose }: { url: string | null; onClose: (
           <div className="h-[260px] w-[260px] animate-pulse rounded-lg bg-amber-100/10" />
         )}
         {dataUrl && (
-          <a href={dataUrl} download="dieu-uoc-trung-thu.png" className="btn-primary">
+          <a href={dataUrl} download="dieu-uoc-giang-sinh.png" className="btn-primary">
             <DownloadIcon size={18} /> {vi.share.downloadQr}
           </a>
         )}

@@ -2,8 +2,8 @@ import { useId, type ReactNode, type SVGProps } from 'react';
 import type { WishCategory } from '@/entities/wish/types';
 
 /**
- * Bộ icon vẽ riêng cho Cây Đa Ước Nguyện — nét tròn 1.7px, lưới 24×24,
- * mang hoạ tiết Trung Thu (đèn lồng, đèn ông sao, cuộn thư, bút lông).
+ * Bộ icon vẽ riêng cho Cây Thông Ước Nguyện — nét tròn 1.7px, lưới 24×24,
+ * mang hoạ tiết Giáng sinh (quả châu, ngôi sao, cuộn thư, bút lông).
  * Icon mặc định là trang trí (aria-hidden); nút bấm tự có aria-label.
  */
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
@@ -30,17 +30,18 @@ function Icon({ size = 20, children, ...rest }: IconProps & { children: ReactNod
 
 const STAR_PATH = 'M12 3 14.2 8.9 20.6 9.2 15.6 13.2 17.3 19.3 12 15.8 6.7 19.3 8.4 13.2 3.4 9.2 9.8 8.9Z';
 
-export const LanternIcon = (p: IconProps) => (
+/** Quả châu Giáng sinh: móc treo, nắp, thân tròn có hoa văn sóng. */
+export const OrnamentIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M12 1.8v2" />
-    <path d="M9.2 3.8h5.6" />
-    <path d="M8.6 5.2C6 6.8 5.2 9.3 5.2 12s.8 5.2 3.4 6.8h6.8c2.6-1.6 3.4-4.1 3.4-6.8s-.8-5.2-3.4-6.8Z" />
-    <path d="M12 5.2v13.6M9.3 5.6C8.2 7.4 7.9 9.6 7.9 12s.3 4.6 1.4 6.4M14.7 5.6c1.1 1.8 1.4 4 1.4 6.4s-.3 4.6-1.4 6.4" />
-    <path d="M12 18.8v3M10.6 22.2h2.8" />
+    <path d="M12 1.8a1.5 1.5 0 0 1 1.5 1.5" />
+    <rect x="9.6" y="3.8" width="4.8" height="2.6" rx="0.8" />
+    <circle cx="12" cy="14.2" r="7.8" />
+    <path d="M4.6 12.2c1.8 1.4 3.6 1.4 5.2 0s3.6-1.4 5.2 0 3.6 1.4 4.4.2" />
+    <path d="M5 17.3c1.7 1.2 3.4 1.2 5 0s3.3-1.2 5 0 3.2 1.1 4-.1" />
   </Icon>
 );
 
-export const StarLanternIcon = (p: IconProps) => (
+export const StarIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d={STAR_PATH} />
     <path d="M12 8.9v6.9M9.8 8.9l5.8 4.3M14.2 8.9l-5.8 4.3" strokeWidth={1} opacity={0.7} />
@@ -261,7 +262,7 @@ const CATEGORY_COMPONENT: Record<WishCategory, (p: IconProps) => ReactNode> = {
   health: HealthIcon,
   love: LoveIcon,
   career: CareerIcon,
-  other: StarLanternIcon,
+  other: StarIcon,
 };
 
 export function CategoryIcon({ category, ...p }: IconProps & { category: WishCategory }) {
@@ -269,40 +270,48 @@ export function CategoryIcon({ category, ...p }: IconProps & { category: WishCat
   return <C {...p} />;
 }
 
-/* ---- Logo: đèn lồng đỏ trước vầng trăng ---- */
+/* ---- Logo: cây thông phủ tuyết, ngôi sao trên đỉnh ---- */
+
+const BRAND_PATHS = {
+  star: 'M32 2.5 34.6 8.4 41 8.9 36.1 13 37.6 19.3 32 15.9 26.4 19.3 27.9 13 23 8.9 29.4 8.4Z',
+  tiers: [
+    'M32 14 44 30H20Z',
+    'M32 22 49 42H15Z',
+    'M32 31 54 55H10Z',
+  ],
+  snow: [
+    'M25.5 26.5c2 1.4 4.3 1.4 6.5 0s4.5-1.4 6.5 0',
+    'M21 37.5c2.7 1.6 5.6 1.6 8.3 0s5.6-1.6 8.4 0 5.6 1.6 7.3.3',
+    'M16 50c3 1.8 6.4 1.8 9.6 0s6.4-1.8 9.6 0 6.4 1.8 9.6 0 4.5-1.3 5.2-.6',
+  ],
+};
 
 export function BrandMark({ size = 40 }: { size?: number }) {
   const id = useId().replace(/:/g, '');
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
       <defs>
-        <radialGradient id={`${id}m`} cx="0.4" cy="0.38" r="0.7">
-          <stop offset="0" stopColor="#fffbe8" />
-          <stop offset="0.7" stopColor="#fde9a8" />
-          <stop offset="1" stopColor="#f5c95c" />
-        </radialGradient>
-        <radialGradient id={`${id}l`} cx="0.42" cy="0.4" r="0.65">
-          <stop offset="0" stopColor="#ffd08a" />
-          <stop offset="0.45" stopColor="#f0533a" />
-          <stop offset="1" stopColor="#a3161b" />
+        <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#3f9a55" />
+          <stop offset="1" stopColor="#15512c" />
+        </linearGradient>
+        <radialGradient id={`${id}s`} cx="0.5" cy="0.45" r="0.6">
+          <stop offset="0" stopColor="#fff6c2" />
+          <stop offset="1" stopColor="#f5b820" />
         </radialGradient>
       </defs>
-      <circle cx="40" cy="22" r="17" fill={`url(#${id}m)`} />
-      <circle cx="46" cy="16" r="2.4" fill="#f0d27e" opacity="0.6" />
-      <circle cx="35" cy="28" r="3.2" fill="#f0d27e" opacity="0.45" />
-      <path d="M26 6v6" stroke="#6b3b12" strokeWidth="1.6" strokeLinecap="round" />
-      <rect x="19" y="11" width="14" height="4" rx="1.6" fill="#e2a632" />
-      <path d="M18.5 15C11 19 9.5 25 9.5 31s1.5 12 9 16h15c7.5-4 9-10 9-16s-1.5-12-9-16Z" fill={`url(#${id}l)`} />
-      <path
-        d="M26 15v32M20.8 16c-3 4.3-3.8 9.5-3.8 15s.8 10.7 3.8 15M31.2 16c3 4.3 3.8 9.5 3.8 15s-.8 10.7-3.8 15"
-        stroke="#7d0f14"
-        strokeWidth="1.3"
-        fill="none"
-        opacity="0.55"
-      />
-      <rect x="19" y="46" width="14" height="4" rx="1.6" fill="#e2a632" />
-      <path d="M26 50v8" stroke="#c81e24" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M23.5 58.5h5" stroke="#e2a632" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="28.5" y="54" width="7" height="7" rx="1" fill="#6b4226" />
+      {BRAND_PATHS.tiers.map((d) => (
+        <path key={d} d={d} fill={`url(#${id}g)`} stroke="#0f3b21" strokeWidth="1" strokeLinejoin="round" />
+      ))}
+      {BRAND_PATHS.snow.map((d) => (
+        <path key={d} d={d} stroke="#f4f8ff" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+      ))}
+      <circle cx="26" cy="44" r="2.2" fill="#e63946" />
+      <circle cx="39" cy="33" r="2" fill="#f2b134" />
+      <circle cx="37" cy="47" r="2.2" fill="#4dabf7" />
+      <circle cx="29" cy="27" r="1.7" fill="#f783ac" />
+      <path d={BRAND_PATHS.star} fill={`url(#${id}s)`} stroke="#d99a06" strokeWidth="0.8" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -1,19 +1,23 @@
 /**
- * Nhạc nền Trung Thu tổng hợp bằng Web Audio — không cần file âm thanh.
- * Giai điệu ngũ cung vui, lặp lại (FR-001-12).
+ * Nhạc nền Giáng sinh tổng hợp bằng Web Audio — không cần file âm thanh.
+ * Điệp khúc "Jingle Bells" (J. Pierpont, 1857 — phạm vi công cộng), lặp lại (FR-001-12).
  */
 const NOTE: Record<string, number> = {
-  G4: 392, A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880,
+  G4: 392, A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880,
 };
 
-// [nốt, số phách] — nhịp nhanh, tươi như "Rước đèn"
+// [nốt, số phách]
 const MELODY: [string | null, number][] = [
-  ['C5', 1], ['C5', 1], ['D5', 1], ['E5', 1], ['G5', 2], ['E5', 2],
-  ['D5', 1], ['E5', 1], ['D5', 1], ['C5', 1], ['A4', 2], [null, 2],
-  ['G4', 1], ['A4', 1], ['C5', 1], ['D5', 1], ['E5', 2], ['G5', 2],
-  ['A5', 1], ['G5', 1], ['E5', 1], ['D5', 1], ['C5', 3], [null, 1],
+  ['E5', 1], ['E5', 1], ['E5', 2], ['E5', 1], ['E5', 1], ['E5', 2],
+  ['E5', 1], ['G5', 1], ['C5', 1.5], ['D5', 0.5], ['E5', 4],
+  ['F5', 1], ['F5', 1], ['F5', 1.5], ['F5', 0.5], ['F5', 1], ['E5', 1], ['E5', 1], ['E5', 0.5], ['E5', 0.5],
+  ['E5', 1], ['D5', 1], ['D5', 1], ['E5', 1], ['D5', 2], ['G5', 2],
+  ['E5', 1], ['E5', 1], ['E5', 2], ['E5', 1], ['E5', 1], ['E5', 2],
+  ['E5', 1], ['G5', 1], ['C5', 1.5], ['D5', 0.5], ['E5', 4],
+  ['F5', 1], ['F5', 1], ['F5', 1.5], ['F5', 0.5], ['F5', 1], ['E5', 1], ['E5', 1], ['E5', 0.5], ['E5', 0.5],
+  ['G5', 1], ['G5', 1], ['F5', 1], ['D5', 1], ['C5', 3], [null, 1],
 ];
-const BEAT = 0.3;
+const BEAT = 0.26;
 
 class MusicPlayer {
   private ctx: AudioContext | null = null;

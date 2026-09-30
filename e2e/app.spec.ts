@@ -8,7 +8,7 @@ async function hangWish(page: Page, content: string, author = '') {
   await page.getByLabel(/Điều ước/).fill(content);
   if (author) await page.getByLabel('Tên của bạn').fill(author);
   await page.getByRole('button', { name: /Treo lên cây/ }).click();
-  await expect(page.getByText('Điều ước của bạn đã được treo lên cây đa')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Điều ước của bạn đã được treo lên cây thông')).toBeVisible({ timeout: 5000 });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -18,8 +18,8 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
 });
 
-test('AC-001-01: hiển thị cảnh 3D cây đa', async ({ page }) => {
-  await expect(page.getByRole('img', { name: /Cảnh 3D cây đa/ })).toBeVisible();
+test('AC-001-01: hiển thị cảnh 3D cây thông', async ({ page }) => {
+  await expect(page.getByRole('img', { name: /Cảnh 3D cây thông/ })).toBeVisible();
   await expect(page.getByText('0/100 điều ước')).toBeVisible();
 });
 
@@ -51,11 +51,11 @@ test('AC-004-05/09 + AC-005-03/04: tìm, mở chi tiết, gỡ rồi hoàn tác'
 
 test('AC-006-06/07/09: mở link chia sẻ và treo lên cây của mình', async ({ page }) => {
   const payload = compressToEncodedURIComponent(
-    JSON.stringify({ v: 1, c: 'Trăng rằm thật tròn 🌕', a: 'Hằng', k: 'love', p: 'pink', t: '2026-09-25T12:00:00.000Z' }),
+    JSON.stringify({ v: 1, c: 'Tuyết rơi thật đẹp ❄️', a: 'Hằng', k: 'love', p: 'pink', t: '2026-09-25T12:00:00.000Z' }),
   );
   await page.goto(`/#/w/${payload}`);
   const overlay = page.getByRole('dialog', { name: 'Một điều ước được gửi tới bạn' });
-  await expect(overlay).toContainText('Trăng rằm thật tròn 🌕');
+  await expect(overlay).toContainText('Tuyết rơi thật đẹp ❄️');
   await overlay.getByRole('button', { name: /Treo lên cây của tôi/ }).click();
   await expect(page.getByText('1/100 điều ước')).toBeVisible();
   expect(new URL(page.url()).hash).toBe('#/');

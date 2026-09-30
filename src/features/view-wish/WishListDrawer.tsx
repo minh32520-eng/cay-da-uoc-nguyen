@@ -8,7 +8,7 @@ import {
 } from '@/entities/wish';
 import { vi } from '@/shared/i18n/vi';
 import { Modal } from '@/shared/ui/Modal';
-import { CategoryIcon, LanternIcon, LinkIcon } from '@/shared/ui/icons';
+import { CategoryIcon, OrnamentIcon, LinkIcon } from '@/shared/ui/icons';
 import { formatWishDate, isFilterActive, MAX_QUERY, type WishSortOrder } from './filterWishes';
 import { useVisibleWishes, useWishViewStore } from './useWishView';
 
@@ -45,7 +45,7 @@ export function WishListDrawer({ onSelect, onCompose }: WishListDrawerProps) {
     <Modal open={open} title={vi.view.listTitle} onClose={close} variant="drawer">
       {total === 0 ? (
         <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <LanternIcon size={56} className="text-amber-300" />
+          <OrnamentIcon size={56} className="text-amber-300" />
           <p>{vi.view.emptyTree}</p>
           <button
             type="button"

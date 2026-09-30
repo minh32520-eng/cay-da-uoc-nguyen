@@ -1,15 +1,15 @@
 /** Toàn bộ chuỗi giao diện tiếng Việt (Constitution §V). */
 export const vi = {
   app: {
-    title: 'Cây Đa Ước Nguyện',
-    subtitle: 'Đêm rằm tháng Tám',
+    title: 'Cây Thông Ước Nguyện',
+    subtitle: 'Đêm Giáng sinh an lành',
     counter: (n: number, max: number) => `${n}/${max} điều ước`,
   },
   scene: {
-    loading: 'Đang trồng cây đa…',
+    loading: 'Đang trang trí cây thông…',
     canvasLabel:
-      'Cảnh 3D cây đa cổ thụ trong đêm trăng rằm, có đèn lồng và các tờ giấy ước nguyện treo trên cành.',
-    tree2dLabel: 'Cây đa (chế độ 2D) với các tờ giấy ước nguyện',
+      'Cảnh 3D cây thông Giáng sinh phủ tuyết, có quả châu, dây đèn, tuần lộc và người tuyết; các tờ giấy ước nguyện treo dưới các tầng lá.',
+    tree2dLabel: 'Cây thông (chế độ 2D) với các tờ giấy ước nguyện',
     resetView: 'Về góc nhìn ban đầu',
     rotateLeft: 'Xoay trái',
     rotateRight: 'Xoay phải',
@@ -20,7 +20,7 @@ export const vi = {
     mode2d: 'Chế độ 2D',
     mode3d: 'Chế độ 3D',
     noWebgl: 'Thiết bị không hỗ trợ 3D, đang hiển thị chế độ 2D.',
-    loadFailed: 'Không tải được cây đa. Vui lòng thử lại.',
+    loadFailed: 'Không tải được cây thông. Vui lòng thử lại.',
     retry: 'Thử lại',
     use2d: 'Dùng chế độ 2D',
     contextLost: 'Đã chuyển sang chế độ 2D để ổn định hơn.',
@@ -28,7 +28,7 @@ export const vi = {
   },
   compose: {
     open: 'Viết điều ước',
-    titleCreate: 'Viết điều ước Trung Thu',
+    titleCreate: 'Viết điều ước Giáng sinh',
     titleEdit: 'Sửa điều ước',
     content: 'Điều ước',
     contentPlaceholder: 'Con ước…',
@@ -51,13 +51,13 @@ export const vi = {
     errAuthorTooLong: 'Tên tối đa 30 ký tự.',
     errProfanity: 'Điều ước có từ ngữ không phù hợp, vui lòng chỉnh sửa.',
     errDraftStorage: 'Không thể lưu bản nháp trên trình duyệt này.',
-    treeFull: 'Cây đa đã kín ước nguyện. Hãy gỡ bớt để viết thêm.',
+    treeFull: 'Cây thông đã kín ước nguyện. Hãy gỡ bớt để viết thêm.',
     pickSlotHint: 'Chọn một cành trống đang phát sáng để treo điều ước.',
     cancelPick: 'Huỷ chọn cành',
   },
   hang: {
-    success: 'Điều ước của bạn đã được treo lên cây đa',
-    treeFull: 'Cây đa đã kín ước nguyện. Hãy gỡ bớt để treo thêm.',
+    success: 'Điều ước của bạn đã được treo lên cây thông',
+    treeFull: 'Cây thông đã kín ước nguyện. Hãy gỡ bớt để treo thêm.',
     slotTaken: 'Cành này đã có điều ước, hãy chọn cành khác.',
     storageFailed:
       'Không thể lưu vĩnh viễn. Điều ước sẽ mất khi đóng trang — hãy xuất file sao lưu.',
@@ -121,7 +121,7 @@ export const vi = {
     qr: 'Mã QR',
     qrTitle: 'Quét mã để xem điều ước',
     downloadQr: 'Tải ảnh PNG',
-    shareTitle: 'Điều ước Trung Thu',
+    shareTitle: 'Điều ước Giáng sinh',
     copied: 'Đã sao chép link',
     copyManual: 'Không thể tự sao chép, hãy sao chép link bên dưới.',
     tooLong: 'Điều ước quá dài để chia sẻ qua link.',

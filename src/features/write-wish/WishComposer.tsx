@@ -11,7 +11,7 @@ import {
 import { vi } from '@/shared/i18n/vi';
 import { Modal } from '@/shared/ui/Modal';
 import { toast } from '@/shared/ui/toast';
-import { CategoryIcon, LanternIcon, SparkleIcon } from '@/shared/ui/icons';
+import { CategoryIcon, OrnamentIcon, SparkleIcon } from '@/shared/ui/icons';
 import { draftStorage } from './draftStorage';
 import { useWishForm } from './useWishForm';
 import { WishPaperPreview } from './WishPaperPreview';
@@ -228,7 +228,7 @@ export function WishComposer({ open, onClose, onSubmit, initialValue, mode = 'cr
           <div className="flex flex-col items-center justify-between gap-6 pt-6">
             <WishPaperPreview draft={form.values} />
             <button type="submit" className="btn-primary w-full" disabled={!form.isValid}>
-              <LanternIcon /> {mode === 'create' ? vi.compose.submitCreate : vi.compose.submitEdit}
+              <OrnamentIcon /> {mode === 'create' ? vi.compose.submitCreate : vi.compose.submitEdit}
             </button>
           </div>
         </form>
